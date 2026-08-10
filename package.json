@@ -1,0 +1,16 @@
+{
+  "name": "anivault",
+  "productName": "番仓 AniVault",
+  "version": "0.1.0",
+  "description": "AGE 动漫自动追更下载器桌面配置面板 Demo",
+  "main": "electron/main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "smoke": "electron . --smoke",
+    "selftest": "electron . --selftest"
+  },
+  "devDependencies": {
+    "electron": "^43.3.0"
+  }
+}

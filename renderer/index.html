@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>番仓 AniVault</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>番仓 AniVault</h1>
+    <span class="sub">AGE 动漫自动追更 · 配置面板 Demo</span>
+    <span id="status" class="status"></span>
+  </header>
+  <main>
+    <section id="global">
+      <h2>全局设置</h2>
+      <label>每日抓取时间
+        <input id="fetch_time" type="text" placeholder="18:00">
+      </label>
+      <label>单次最多下载（0 = 不限）
+        <input id="max_download" type="number" min="0" step="1">
+      </label>
+      <label class="check">
+        <input id="auto_repair" type="checkbox"> 缺失集自动补下
+      </label>
+      <label class="check">
+        <input id="auto_close_idm" type="checkbox"> 下载完成后自动关闭 IDM
+      </label>
+      <div id="global-errors" class="errors"></div>
+    </section>
+    <section id="anime">
+      <div class="section-head">
+        <h2>追番清单</h2>
+        <button id="add-anime">+ 添加番剧</button>
+      </div>
+      <div id="anime-list"></div>
+    </section>
+  </main>
+  <footer>
+    <button id="save" class="primary">保存配置</button>
+    <button id="reload">放弃修改并重新载入</button>
+    <span id="save-msg" class="save-msg"></span>
+  </footer>
+  <script src="renderer.js"></script>
+</body>
+</html>

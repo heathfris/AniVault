@@ -1,0 +1,101 @@
+'use strict';
+
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+const INT_RE = /^-?\d+$/;
+const ILLEGAL_NAME_RE = /[\/\\:*?"<>|]/;
+const PLACEHOLDER_RE = /\{([a-zA-Z]+)\}/g;
+const ALLOWED_PLACEHOLDERS = new Set(['name', 'ep', 'start', 'end']);
+
+function empty(v) {
+  return v === undefined || v === null || v === '';
+}
+
+function isInt(v) {
+  if (typeof v === 'number') return Number.isInteger(v);
+  return typeof v === 'string' && INT_RE.test(v.trim());
+}
+
+function isNonNegativeInt(v) {
+  if (!isInt(v)) return false;
+  return (typeof v === 'number' ? v : parseInt(v, 10)) >= 0;
+}
+
+function isPositiveInt(v) {
+  if (!isInt(v)) return false;
+  return (typeof v === 'number' ? v : parseInt(v, 10)) > 0;
+}
+
+function validateConfig(config) {
+  const errors = {};
+  if (!config || typeof config !== 'object' || Array.isArray(config)) {
+    errors._root = '配置必须是对象';
+    return { ok: false, errors };
+  }
+
+  if (typeof config.fetch_time !== 'string' || !TIME_RE.test(config.fetch_time.trim())) {
+    errors.fetch_time = '格式必须是 HH:MM（如 18:00）';
+  }
+
+  const defaults = config.defaults;
+  if (defaults !== undefined && defaults !== null) {
+    if (typeof defaults !== 'object' || Array.isArray(defaults)) {
+      errors.defaults = 'defaults 必须是对象';
+    } else {
+      if (!isNonNegativeInt(defaults.max_download)) errors['defaults.max_download'] = '必须是非负整数';
+      if (typeof defaults.auto_repair !== 'boolean') errors['defaults.auto_repair'] = '必须是 true/false';
+      if (typeof defaults.auto_close_idm !== 'boolean') errors['defaults.auto_close_idm'] = '必须是 true/false';
+    }
+  }
+
+  const anime = config.anime;
+  if (anime !== undefined && anime !== null) {
+    if (typeof anime !== 'object' || Array.isArray(anime)) {
+      errors.anime = 'anime 必须是对象';
+    } else {
+      for (const [title, item] of Object.entries(anime)) {
+        const base = 'anime.' + title;
+        if (!title || !String(title).trim()) {
+          errors[base + '.title'] = '片名不能为空';
+          continue;
+        }
+        if (!item || typeof item !== 'object' || Array.isArray(item)) {
+          errors[base] = '条目必须是对象';
+          continue;
+        }
+        if (!empty(item.site_id) && !isPositiveInt(item.site_id)) {
+          errors[base + '.site_id'] = '必须是正整数';
+        }
+        if (!empty(item.update_time) && (typeof item.update_time !== 'string' || !TIME_RE.test(item.update_time.trim()))) {
+          errors[base + '.update_time'] = '格式必须是 HH:MM';
+        }
+        for (const f of ['downloaded_start', 'downloaded_end', 'site_latest']) {
+          if (!empty(item[f]) && !isNonNegativeInt(item[f])) {
+            errors[base + '.' + f] = '必须是非负整数';
+          }
+        }
+        for (const f of ['folder_name', 'file_name']) {
+          const v = item[f];
+          if (empty(v)) continue;
+          if (typeof v !== 'string') {
+            errors[base + '.' + f] = '必须是字符串';
+            continue;
+          }
+          if (ILLEGAL_NAME_RE.test(v)) {
+            errors[base + '.' + f] = '不能包含 \\ / : * ? " < > |';
+          }
+          PLACEHOLDER_RE.lastIndex = 0;
+          let m;
+          while ((m = PLACEHOLDER_RE.exec(v))) {
+            if (!ALLOWED_PLACEHOLDERS.has(m[1])) {
+              errors[base + '.' + f] = '只允许 {name}{ep}{start}{end}';
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return { ok: Object.keys(errors).length === 0, errors };
+}
+
+module.exports = { validateConfig };
