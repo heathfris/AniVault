@@ -1,0 +1,46 @@
+{
+  "fetch_time": "18:00",
+  "defaults": {
+    "max_download": 10,
+    "auto_repair": true,
+    "auto_close_idm": true
+  },
+  "anime": {
+    "尼古喵喵": {
+      "site_id": 20260200,
+      "update_time": "00:00",
+      "downloaded_start": 1,
+      "downloaded_end": 6,
+      "site_latest": 6,
+      "file_name": "{name}_{ep}.mp4"
+    },
+    "BanG Dream! YUME∞MITA": {
+      "site_id": 20260169,
+      "update_time": "22:00",
+      "downloaded_start": 1,
+      "downloaded_end": 8,
+      "site_latest": 8
+    },
+    "感谢对战 大小姐才不玩格斗游戏": {
+      "site_id": 20260201,
+      "update_time": "19:30",
+      "downloaded_start": 1,
+      "downloaded_end": 5,
+      "site_latest": 5
+    },
+    "再见，拉拉": {
+      "site_id": 20260166,
+      "update_time": "23:30",
+      "downloaded_start": 1,
+      "downloaded_end": 5,
+      "site_latest": 6
+    },
+    "穹庐下的魔女": {
+      "site_id": 20260187,
+      "update_time": "22:30",
+      "downloaded_start": 1,
+      "downloaded_end": 7,
+      "site_latest": 7
+    }
+  }
+}
