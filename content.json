@@ -2,7 +2,7 @@
   "fetch_time": "18:00",
   "defaults": {
     "max_download": 10,
-    "max_parallel": 1,
+    "max_parallel": 3,
     "auto_repair": true,
     "auto_close_idm": true
   },
@@ -44,11 +44,18 @@
       "site_latest": 7
     },
     "幼女战记 第二季": {
+      "site_id": 20210240,
+      "update_time": "21:30",
       "downloaded_start": 0,
       "downloaded_end": 5,
-      "site_latest": 5,
-      "site_id": 20210240,
-      "update_time": "21:30"
+      "site_latest": 5
+    },
+    "擅长逃跑的殿下 第二季": {
+      "site_id": 20260178,
+      "update_time": "22:30",
+      "downloaded_start": 0,
+      "downloaded_end": 0,
+      "site_latest": 4
     }
   }
 }

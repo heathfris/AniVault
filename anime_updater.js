@@ -43,28 +43,35 @@ async function fetchText(url, referer, deps = {}) {
   if (referer) headers.Referer = referer;
   const fetchImpl = deps.fetchImpl || fetch;
   const timeoutMs = deps.timeoutMs || FETCH_TIMEOUT_MS;
-  const controller = new AbortController();
-  let timeoutReject;
-  const timeoutPromise = new Promise((_, reject) => { timeoutReject = reject; });
-  const timer = setTimeout(() => {
-    controller.abort();
-    timeoutReject(new Error(`请求超时（${timeoutMs}ms）: ${url}`));
-  }, timeoutMs);
-  try {
-    const r = await Promise.race([
-      fetchImpl(url, { headers, signal: controller.signal }),
-      timeoutPromise,
-    ]);
-    if (!r.ok) throw new Error(`HTTP ${r.status} ${url}`);
-    return r.text();
-  } catch (e) {
-    if (e.name === 'AbortError' || /超时/.test(e.message || '')) {
-      throw new Error(`请求超时（${timeoutMs}ms）: ${url}`);
+  const retries = deps.retries !== undefined ? deps.retries : 1;
+  const retryDelayMs = deps.retryDelayMs || 3000;
+  let lastError = null;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    if (attempt > 0) await sleep(retryDelayMs);
+    const controller = new AbortController();
+    let timeoutReject;
+    const timeoutPromise = new Promise((_, reject) => { timeoutReject = reject; });
+    const timer = setTimeout(() => {
+      controller.abort();
+      timeoutReject(new Error(`请求超时（${timeoutMs}ms）: ${url}`));
+    }, timeoutMs);
+    try {
+      const r = await Promise.race([
+        fetchImpl(url, { headers, signal: controller.signal }),
+        timeoutPromise,
+      ]);
+      if (!r.ok) throw new Error(`HTTP ${r.status} ${url}`);
+      return r.text();
+    } catch (e) {
+      if (e.name === 'AbortError' || /超时/.test(e.message || '')) {
+        throw new Error(`请求超时（${timeoutMs}ms）: ${url}`);
+      }
+      lastError = e;
+    } finally {
+      clearTimeout(timer);
     }
-    throw e;
-  } finally {
-    clearTimeout(timer);
   }
+  throw lastError;
 }
 
 function formatLogTime(date) {
@@ -501,6 +508,11 @@ function findMissingEps(dir, anime, end) {
   return missing;
 }
 
+function resolveDownloadedStart(fileCount, current) {
+  if (!Number.isFinite(fileCount) || fileCount < 0) return current;
+  return fileCount >= 1 ? 1 : 0;
+}
+
 function isIdmRunning() {
   const r = spawnSync('tasklist.exe', ['/FI', 'IMAGENAME eq IDMan.exe', '/NH'], { encoding: 'utf8', windowsHide: true });
   return r.status === 0 && /IDMan\.exe/i.test(r.stdout || '');
@@ -703,6 +715,12 @@ async function processOneAnime(title, info, content, options = {}) {
   }
 
   const fileCount = countEpisodeFiles(folder.dir, anime);
+  const newStart = resolveDownloadedStart(fileCount, info.downloaded_start);
+  if (newStart !== info.downloaded_start) {
+    info.downloaded_start = newStart;
+    changed = true;
+    progress(`${title}: downloaded_start 修正为 ${newStart}`);
+  }
   const repairEps = [];
   if (fileCount >= 0 && fileCount < end) {
     if (autoRepair) {
@@ -790,8 +808,12 @@ async function processAllAnime(content, deps = {}) {
     }
   }
   if (changed) fs.writeFileSync(CONTENT, JSON.stringify(content, null, 2) + '\n', 'utf8');
-  reportCsv(rows);
-  reportProgress(`待下载清单已写: ${CSV}（${rows.length} 行）`);
+  if (rows.length > 0 || failed === 0) {
+    reportCsv(rows);
+    reportProgress(`待下载清单已写: ${CSV}（${rows.length} 行）`);
+  } else {
+    reportProgress('查询失败且本运行无待下载行，保留上次待下载清单');
+  }
   return { ok: true, changed, failed, rows };
 }
 
@@ -829,7 +851,7 @@ async function main() {
   await processAllAnime(content, { dryRun });
 }
 
-module.exports = { searchSite, parseFolderName, applyTemplate, validName, resolveFolderName, resolveFileName, renameFolder, safeRenameFolder, getEpisodeFileMatcher, countEpisodeFiles, findEpisodeFile, planDownloadRange, findMissingEps, getCsvPath, getFfmpegPath, getAria2Path, getFfmpegTempPath, formatLogTime, isIdmRunning, ensureIdmMinimized, idmHasActivity, closeIdmIfIdle, blocked, progress, getMaxEp, getPlayUrl, callIdm, callFfmpeg, callAria2, fetchText, runPool, processOneAnime, processAllAnime, waitForFile, downloadEpisode, findFolder, findFolderByTitle, normalizeTime, syncTask, readTaskState, writeCsv };
+module.exports = { searchSite, parseFolderName, applyTemplate, validName, resolveFolderName, resolveFileName, renameFolder, safeRenameFolder, getEpisodeFileMatcher, countEpisodeFiles, findEpisodeFile, planDownloadRange, findMissingEps, resolveDownloadedStart, getCsvPath, getFfmpegPath, getAria2Path, getFfmpegTempPath, formatLogTime, isIdmRunning, ensureIdmMinimized, idmHasActivity, closeIdmIfIdle, blocked, progress, getMaxEp, getPlayUrl, callIdm, callFfmpeg, callAria2, fetchText, runPool, processOneAnime, processAllAnime, waitForFile, downloadEpisode, findFolder, findFolderByTitle, normalizeTime, syncTask, readTaskState, writeCsv };
 
 if (require.main === module) {
   main().catch(e => {

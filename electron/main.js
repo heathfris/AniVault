@@ -28,6 +28,10 @@ function progressFile() {
   return path.join(appRoot(), 'PROGRESS.md');
 }
 
+function blockedFile() {
+  return path.join(appRoot(), 'BLOCKED.md');
+}
+
 function lockFile() {
   return path.join(appRoot(), 'local', 'run.lock');
 }
@@ -228,12 +232,18 @@ function registerIpc() {
   ipcMain.handle('log:tail', (_e, n) => {
     const count = Math.min(Math.max(parseInt(n, 10) || 100, 1), 1000);
     let progress = [];
+    let blockedTail = [];
     try {
       progress = tailFile(progressFile(), count);
     } catch (e) {
       progress = ['PROGRESS.md 不可读: ' + e.message];
     }
-    return { progress, run: runLog.slice(-count) };
+    try {
+      blockedTail = tailFile(blockedFile(), count);
+    } catch (e) {
+      blockedTail = ['BLOCKED.md 不可读: ' + e.message];
+    }
+    return { progress, blocked: blockedTail, run: runLog.slice(-count) };
   });
   ipcMain.handle('csv:read', () => {
     try {

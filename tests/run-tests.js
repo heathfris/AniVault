@@ -16,6 +16,7 @@ const {
   getFfmpegPath,
   getFfmpegTempPath,
   getEpisodeFileMatcher,
+  resolveDownloadedStart,
   runPool,
   writeCsv,
 } = require('../anime_updater.js');
@@ -60,6 +61,18 @@ function testPartialFfmpegOutputIsNotAnEpisode() {
   assert.equal(getFfmpegTempPath(finalPath), path.join('D:', 'downloads', 'Test Anime 第02集.part.mp4'));
   const matcher = getEpisodeFileMatcher({ title: 'Test Anime' });
   assert.equal(matcher('Test Anime 第02集.part.mp4'), null);
+}
+
+function testResolveStartAtLeastOne() {
+  assert.equal(resolveDownloadedStart(3, 0), 1);
+}
+
+function testResolveStartZero() {
+  assert.equal(resolveDownloadedStart(0, 5), 0);
+}
+
+function testResolveStartUnknownKeeps() {
+  assert.equal(resolveDownloadedStart(-1, 7), 7);
 }
 
 async function testDownloadEpisodeUsesAnimeSiteId() {
@@ -252,6 +265,12 @@ Promise.resolve()
   .then(() => console.log('PASS bundled ffmpeg path is preferred'))
   .then(testPartialFfmpegOutputIsNotAnEpisode)
   .then(() => console.log('PASS partial ffmpeg output is not an episode'))
+  .then(testResolveStartAtLeastOne)
+  .then(() => console.log('PASS downloaded_start ≥1 → 1'))
+  .then(testResolveStartZero)
+  .then(() => console.log('PASS downloaded_start =0 → 0'))
+  .then(testResolveStartUnknownKeeps)
+  .then(() => console.log('PASS downloaded_start -1 保持原值'))
   .then(testDownloadEpisodeUsesAnimeSiteId)
   .then(() => console.log('PASS downloadEpisode uses anime.site_id'))
   .then(testM3u8UsesAria2WithHls)

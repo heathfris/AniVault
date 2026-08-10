@@ -7,6 +7,7 @@ const state = {
   lastExit: null,
   logRun: [],
   logProgress: [],
+  logBlocked: [],
   logPinned: true,
 };
 
@@ -204,6 +205,10 @@ function renderLog() {
   for (const l of state.logRun) html.push(escapeHtml(l));
   if (state.logRun.length && state.logProgress.length) html.push('— PROGRESS 末尾 —');
   for (const l of state.logProgress) html.push(escapeHtml(l));
+  if (state.logBlocked.length) {
+    html.push('— BLOCKED 末尾 —');
+    for (const l of state.logBlocked) html.push(escapeHtml(l));
+  }
   area.textContent = html.length ? html.join('\n') : '暂无日志';
   if (pinned) area.scrollTop = area.scrollHeight;
 }
@@ -220,6 +225,7 @@ async function poll() {
     state.lastExit = st.lastExit;
     state.logRun = log.run || [];
     state.logProgress = log.progress || [];
+    state.logBlocked = log.blocked || [];
     renderRun();
     renderLog();
     if (wasRunning && !st.running) refreshCsv();
