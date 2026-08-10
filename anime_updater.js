@@ -20,7 +20,9 @@ function getAria2Path() {
 }
 const FFMPEG = getFfmpegPath();
 const ARIA2 = getAria2Path();
-const BASE = 'https://www.agedm.io';
+function getBase() {
+  return process.env.AGE_BASE || 'https://www.agedm.io';
+}
 const DLOAD = process.env.AGE_DLOAD || 'D:\\idm下载';
 const CONTENT = process.env.AGE_CONTENT || path.join(WORK, 'content.json');
 const CSV = getCsvPath();
@@ -39,7 +41,7 @@ const BAD_NAME_RE = /[\/\\:*?"<>|]/;
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 async function fetchText(url, referer, deps = {}) {
-  const headers = { 'User-Agent': UA, 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8' };
+  const headers = { 'Connection': 'close', 'User-Agent': UA, 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8' };
   if (referer) headers.Referer = referer;
   const fetchImpl = deps.fetchImpl || fetch;
   const timeoutMs = deps.timeoutMs || FETCH_TIMEOUT_MS;
@@ -143,7 +145,7 @@ function resolveFileName(anime, ep) {
 }
 
 async function searchSite(title) {
-  const html = await fetchText(`${BASE}/search?query=${encodeURIComponent(title)}`);
+  const html = await fetchText(`${getBase()}/search?query=${encodeURIComponent(title)}`);
   const re = /<a href="http:\/\/www\.agedm\.io\/detail\/(\d+)"[^>]*>([^<]+)<\/a>/g;
   let m, first = null;
   while ((m = re.exec(html))) {
@@ -155,7 +157,7 @@ async function searchSite(title) {
 }
 
 async function getHomeUpdateTimes() {
-  const html = await fetchText(`${BASE}/`);
+  const html = await fetchText(`${getBase()}/`);
   const map = {};
   const blocks = html.match(/<li[^>]*>[\s\S]*?<\/li>/g) || [];
   for (const b of blocks) {
@@ -167,7 +169,7 @@ async function getHomeUpdateTimes() {
 }
 
 async function getMaxEp(siteId, source) {
-  const html = await fetchText(`${BASE}/detail/${siteId}`);
+  const html = await fetchText(`${getBase()}/detail/${siteId}`);
   const re = new RegExp(`/play/${siteId}/${source}/(\\d+)`, 'g');
   let m, max = 0;
   while ((m = re.exec(html))) max = Math.max(max, parseInt(m[1], 10));
@@ -185,7 +187,7 @@ async function getPlayUrl(siteId, ep, source) {
       const u = req.url();
       if (!mediaUrl && MEDIA_RE.test(u) && !BAD_RE.test(u)) mediaUrl = u;
     });
-    const playUrl = `${BASE}/play/${siteId}/${source}/${ep}`;
+    const playUrl = `${getBase()}/play/${siteId}/${source}/${ep}`;
     await page.goto(playUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
     try { await page.waitForResponse(r => r.url().includes('Api.php'), { timeout: 30000 }); } catch (e) { /* 播放器可能不走 Api.php */ }
     const deadline = Date.now() + 60000;
@@ -297,11 +299,24 @@ async function waitForFile(filePath, minSize, stableMs, timeoutMs) {
   return { ok: false, size: lastSize };
 }
 
+function engineChain(selected, isM3u8, runMode) {
+  if (isM3u8) return ['aria2', 'ffmpeg'];
+  let chain;
+  if (selected === 'idm') chain = ['idm', 'aria2', 'ffmpeg'];
+  else if (selected === 'ffmpeg') chain = ['ffmpeg', 'aria2', 'idm'];
+  else chain = ['aria2', 'ffmpeg'];
+  if (runMode !== 'interactive') chain = chain.filter(e => e !== 'idm');
+  return chain;
+}
+
 async function downloadEpisode(anime, ep, folderDir, deps = {}) {
   const resolvePlayUrl = deps.getPlayUrl || getPlayUrl;
   const startAria2 = deps.callAria2 || callAria2;
   const startFfmpeg = deps.callFfmpeg || callFfmpeg;
+  const startIdm = deps.callIdm || callIdm;
   const waitForDownload = deps.waitForFile || waitForFile;
+  const engine = deps.engine || 'aria2';
+  const runMode = deps.runMode || process.env.AGE_RUN_MODE || (readTaskState() || {}).run_mode || 'interactive';
   const fname = resolveFileName(anime, ep);
   if (fname.error) throw new Error(fname.error);
   const filename = fname.name;
@@ -339,12 +354,14 @@ async function downloadEpisode(anime, ep, folderDir, deps = {}) {
     }
     const isM3u8 = /\.m3u8(?:[?#]|$)/i.test(url);
     const headers = {
-      Referer: `${BASE}/play/${anime.site_id}/${src}/${ep}`,
+      Referer: `${getBase()}/play/${anime.site_id}/${src}/${ep}`,
       'User-Agent': UA,
     };
     let engineOk = false;
     let res = null;
-    for (const [engineName, launch] of [['aria2', startAria2], ['ffmpeg', startFfmpeg]]) {
+    let okEngineName = null;
+    for (const engineName of engineChain(engine, isM3u8, runMode)) {
+      const launch = engineName === 'aria2' ? startAria2 : engineName === 'ffmpeg' ? startFfmpeg : startIdm;
       progress(`  ${filename} 线路${src}: 交给 ${engineName} ${isM3u8 ? '(M3U8)' : '(MP4)'} ${url.slice(0, 100)}...`);
       const engineResult = launch(url, folderDir, attemptName, headers, isM3u8);
       if (engineResult && engineResult.status !== undefined && engineResult.status !== 0) {
@@ -357,6 +374,7 @@ async function downloadEpisode(anime, ep, folderDir, deps = {}) {
       res = await waitForDownload(attemptPath, MIN_SIZE, STABLE_MS, ATTEMPT_TIMEOUT_MS);
       if (res.ok) {
         engineOk = true;
+        okEngineName = engineName;
         break;
       }
       lastErr = new Error(`线路${src} ${engineName} 文件未完成 size=${res.size}`);
@@ -365,7 +383,7 @@ async function downloadEpisode(anime, ep, folderDir, deps = {}) {
     }
     if (engineOk) {
       if (!isPrimary) fs.renameSync(attemptPath, finalPath);
-      return { src, skipped: false, size: res.size };
+      return { src, skipped: false, size: res.size, engine: okEngineName };
     }
   }
   throw lastErr || new Error('全部线路失败');
@@ -654,6 +672,8 @@ async function processOneAnime(title, info, content, options = {}) {
   const autoRepair = defaults.auto_repair !== false;
   const maxParallelRaw = parseInt(defaults.max_parallel, 10);
   const maxParallel = Number.isFinite(maxParallelRaw) && maxParallelRaw >= 1 && maxParallelRaw <= 10 ? maxParallelRaw : 1;
+  const engine = (defaults.download_engine === 'idm' || defaults.download_engine === 'ffmpeg') ? defaults.download_engine : 'aria2';
+  const runMode = deps.runMode || process.env.AGE_RUN_MODE || (readTaskState() || {}).run_mode || 'interactive';
   let changed = false;
 
   if (!info.site_id) {
@@ -744,15 +764,16 @@ async function processOneAnime(title, info, content, options = {}) {
     progress(`${title}: 无新集（downloaded_end=${end}，站内 ${maxEp}）`);
     return { changed };
   }
-  for (const ep of missing) rows.push({ title, ep, url: `${BASE}/play/${anime.site_id}/1/${ep}` });
+  for (const ep of missing) rows.push({ title, ep, url: `${getBase()}/play/${anime.site_id}/1/${ep}` });
   progress(`${title}: 站内最新 ${maxEp}，本次下载 ${missing.join(',')}（downloaded_end=${end}${maxPerRun > 0 ? `，单次上限 ${maxPerRun}` : ''}${maxParallel > 1 ? `，并发 ${maxParallel}` : ''}）`);
   if (dryRun) return { changed };
 
+  if (engine === 'idm' && runMode === 'interactive') await ensureIdmMinimized();
   const results = await runPool(missing, async ep => {
     try {
       const fname = resolveFileName(anime, ep);
       if (fname.error) throw new Error(fname.error);
-      const r = await processDownload(anime, ep, folder.dir);
+      const r = await processDownload(anime, ep, folder.dir, { engine, runMode });
       progress(`${title} 第${ep}集: 完成${r.skipped ? '（已存在）' : `（线路${r.src}，${r.size} 字节）`}`);
       return { ok: true, r };
     } catch (e) {
@@ -761,6 +782,7 @@ async function processOneAnime(title, info, content, options = {}) {
     }
   }, maxParallel);
   const allOk = results.every(x => x && x.ok);
+  const idmUsed = results.some(x => x && x.ok && x.r && x.r.engine === 'idm');
   if (allOk && missing.length > 0) {
     const newEnd = Math.max(...missing);
     info.downloaded_end = newEnd;
@@ -774,7 +796,7 @@ async function processOneAnime(title, info, content, options = {}) {
       else { progress(`${title}: 文件夹改名 ${folder.name} -> ${newRes.name}`); }
     }
   }
-  return { changed };
+  return { changed, idmUsed };
 }
 
 async function processAllAnime(content, deps = {}) {
@@ -782,6 +804,7 @@ async function processAllAnime(content, deps = {}) {
   const rows = [];
   let changed = false;
   let failed = 0;
+  let idmUsed = false;
   let homeTimes = {};
   const reportBlocked = deps.blocked || blocked;
   const reportProgress = deps.progress || progress;
@@ -802,6 +825,7 @@ async function processAllAnime(content, deps = {}) {
         deps,
       });
       if (r && r.changed) changed = true;
+      if (r && r.idmUsed) idmUsed = true;
     } catch (e) {
       failed += 1;
       reportBlocked(`${title}: ${e.message}`);
@@ -814,7 +838,10 @@ async function processAllAnime(content, deps = {}) {
   } else {
     reportProgress('查询失败且本运行无待下载行，保留上次待下载清单');
   }
-  return { ok: true, changed, failed, rows };
+  if (!dryRun && (content.defaults || {}).auto_close_idm === true && idmUsed) {
+    await closeIdmIfIdle(60000);
+  }
+  return { ok: true, changed, failed, idmUsed, rows };
 }
 
 async function main() {
@@ -851,7 +878,7 @@ async function main() {
   await processAllAnime(content, { dryRun });
 }
 
-module.exports = { searchSite, parseFolderName, applyTemplate, validName, resolveFolderName, resolveFileName, renameFolder, safeRenameFolder, getEpisodeFileMatcher, countEpisodeFiles, findEpisodeFile, planDownloadRange, findMissingEps, resolveDownloadedStart, getCsvPath, getFfmpegPath, getAria2Path, getFfmpegTempPath, formatLogTime, isIdmRunning, ensureIdmMinimized, idmHasActivity, closeIdmIfIdle, blocked, progress, getMaxEp, getPlayUrl, callIdm, callFfmpeg, callAria2, fetchText, runPool, processOneAnime, processAllAnime, waitForFile, downloadEpisode, findFolder, findFolderByTitle, normalizeTime, syncTask, readTaskState, writeCsv };
+module.exports = { searchSite, parseFolderName, applyTemplate, validName, resolveFolderName, resolveFileName, renameFolder, safeRenameFolder, getEpisodeFileMatcher, countEpisodeFiles, findEpisodeFile, planDownloadRange, findMissingEps, resolveDownloadedStart, getBase, engineChain, getCsvPath, getFfmpegPath, getAria2Path, getFfmpegTempPath, formatLogTime, isIdmRunning, ensureIdmMinimized, idmHasActivity, closeIdmIfIdle, blocked, progress, getMaxEp, getPlayUrl, callIdm, callFfmpeg, callAria2, fetchText, runPool, processOneAnime, processAllAnime, waitForFile, downloadEpisode, findFolder, findFolderByTitle, normalizeTime, syncTask, readTaskState, writeCsv };
 
 if (require.main === module) {
   main().catch(e => {

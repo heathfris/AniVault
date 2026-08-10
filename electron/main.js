@@ -81,6 +81,7 @@ function getRunner() {
     runner = createRunner({
       scriptPath: updaterScript(),
       lockPath: lockFile(),
+      extraEnv: { AGE_RUN_MODE: 'interactive' },
       onStdout: line => pushRunLog(line),
       onStderr: line => pushRunLog(line),
       onExit: result => { lastExit = result; },
@@ -232,18 +233,12 @@ function registerIpc() {
   ipcMain.handle('log:tail', (_e, n) => {
     const count = Math.min(Math.max(parseInt(n, 10) || 100, 1), 1000);
     let progress = [];
-    let blockedTail = [];
     try {
       progress = tailFile(progressFile(), count);
     } catch (e) {
       progress = ['PROGRESS.md 不可读: ' + e.message];
     }
-    try {
-      blockedTail = tailFile(blockedFile(), count);
-    } catch (e) {
-      blockedTail = ['BLOCKED.md 不可读: ' + e.message];
-    }
-    return { progress, blocked: blockedTail, run: runLog.slice(-count) };
+    return { progress };
   });
   ipcMain.handle('csv:read', () => {
     try {

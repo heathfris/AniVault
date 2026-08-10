@@ -49,6 +49,7 @@ function validateConfig(config) {
     } else {
       if (!isNonNegativeInt(defaults.max_download)) errors['defaults.max_download'] = '必须是非负整数';
       if (!empty(defaults.max_parallel) && !isIntInRange(defaults.max_parallel, 1, 10)) errors['defaults.max_parallel'] = '必须是 1-10 的整数';
+      if (!empty(defaults.download_engine) && !['aria2', 'idm', 'ffmpeg'].includes(defaults.download_engine)) errors['defaults.download_engine'] = '必须是 aria2/idm/ffmpeg 之一';
       if (typeof defaults.auto_repair !== 'boolean') errors['defaults.auto_repair'] = '必须是 true/false';
       if (typeof defaults.auto_close_idm !== 'boolean') errors['defaults.auto_close_idm'] = '必须是 true/false';
     }

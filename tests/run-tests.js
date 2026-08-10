@@ -254,6 +254,131 @@ async function testPoolSequentialOne() {
   assert.deepEqual(results, [1, 2, 3]);
 }
 
+async function testMp4EngineIdmCallsIdmFirst() {
+  const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'age-anime-test-'));
+  try {
+    const order = [];
+    const anime = { title: 'Test Anime', site_id: 12345, downloaded_end: 1 };
+    const result = await downloadEpisode(anime, 2, folder, {
+      engine: 'idm',
+      runMode: 'interactive',
+      getPlayUrl: async () => 'https://example.test/video.mp4',
+      callIdm: (url, dir, filename) => {
+        order.push('idm');
+        fs.writeFileSync(path.join(dir, filename), 'stub');
+      },
+      callAria2: () => { order.push('aria2'); return { status: 1, stderr: 'x' }; },
+      callFfmpeg: () => { order.push('ffmpeg'); return { status: 1, stderr: 'x' }; },
+      waitForFile: async () => ({ ok: true, size: 100 * 1024 * 1024 }),
+    });
+    assert.equal(result.src, 1);
+    assert.equal(result.engine, 'idm');
+    assert.deepEqual(order, ['idm']);
+  } finally {
+    fs.rmSync(folder, { recursive: true, force: true });
+  }
+}
+
+async function testMp4EngineFfmpegFirst() {
+  const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'age-anime-test-'));
+  try {
+    const order = [];
+    const anime = { title: 'Test Anime', site_id: 12345, downloaded_end: 1 };
+    const result = await downloadEpisode(anime, 2, folder, {
+      engine: 'ffmpeg',
+      runMode: 'interactive',
+      getPlayUrl: async () => 'https://example.test/video.mp4',
+      callFfmpeg: (url, dir, filename) => {
+        order.push('ffmpeg');
+        fs.writeFileSync(path.join(dir, filename), 'stub');
+        return { status: 0 };
+      },
+      callAria2: () => { order.push('aria2'); return { status: 1, stderr: 'x' }; },
+      callIdm: () => order.push('idm'),
+      waitForFile: async () => ({ ok: true, size: 100 * 1024 * 1024 }),
+    });
+    assert.deepEqual(order, ['ffmpeg']);
+    assert.equal(result.engine, 'ffmpeg');
+  } finally {
+    fs.rmSync(folder, { recursive: true, force: true });
+  }
+}
+
+async function testM3u8NeverUsesIdm() {
+  const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'age-anime-test-'));
+  try {
+    const order = [];
+    const anime = { title: 'Test Anime', site_id: 12345, downloaded_end: 1 };
+    const result = await downloadEpisode(anime, 2, folder, {
+      engine: 'idm',
+      runMode: 'interactive',
+      getPlayUrl: async () => 'https://example.test/playlist.m3u8',
+      callIdm: () => order.push('idm'),
+      callFfmpeg: (url, dir, filename) => {
+        order.push('ffmpeg');
+        fs.writeFileSync(path.join(dir, filename), 'stub');
+        return { status: 0 };
+      },
+      callAria2: () => { order.push('aria2'); return { status: 1, stderr: 'x' }; },
+      waitForFile: async () => ({ ok: true, size: 100 * 1024 * 1024 }),
+    });
+    assert.deepEqual(order, ['aria2', 'ffmpeg']);
+    assert.equal(result.engine, 'ffmpeg');
+  } finally {
+    fs.rmSync(folder, { recursive: true, force: true });
+  }
+}
+
+async function testEngineFallbackChain() {
+  const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'age-anime-test-'));
+  try {
+    const order = [];
+    const anime = { title: 'Test Anime', site_id: 12345, downloaded_end: 1 };
+    const result = await downloadEpisode(anime, 2, folder, {
+      engine: 'idm',
+      runMode: 'interactive',
+      getPlayUrl: async () => 'https://example.test/video.mp4',
+      callIdm: () => { order.push('idm'); return { status: 1, stderr: 'idm-fail' }; },
+      callAria2: () => { order.push('aria2'); return { status: 1, stderr: 'aria2-fail' }; },
+      callFfmpeg: (url, dir, filename) => {
+        order.push('ffmpeg');
+        fs.writeFileSync(path.join(dir, filename), 'stub');
+        return { status: 0 };
+      },
+      waitForFile: async () => ({ ok: true, size: 100 * 1024 * 1024 }),
+    });
+    assert.deepEqual(order, ['idm', 'aria2', 'ffmpeg']);
+    assert.equal(result.engine, 'ffmpeg');
+  } finally {
+    fs.rmSync(folder, { recursive: true, force: true });
+  }
+}
+
+async function testNonInteractiveIdmFallsBackToAria2() {
+  const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'age-anime-test-'));
+  try {
+    const order = [];
+    const anime = { title: 'Test Anime', site_id: 12345, downloaded_end: 1 };
+    const result = await downloadEpisode(anime, 2, folder, {
+      engine: 'idm',
+      runMode: 'password',
+      getPlayUrl: async () => 'https://example.test/video.mp4',
+      callIdm: () => order.push('idm'),
+      callAria2: (url, dir, filename) => {
+        order.push('aria2');
+        fs.writeFileSync(path.join(dir, filename), 'stub');
+        return { status: 0 };
+      },
+      callFfmpeg: () => order.push('ffmpeg'),
+      waitForFile: async () => ({ ok: true, size: 100 * 1024 * 1024 }),
+    });
+    assert.deepEqual(order, ['aria2']);
+    assert.equal(result.engine, 'aria2');
+  } finally {
+    fs.rmSync(folder, { recursive: true, force: true });
+  }
+}
+
 Promise.resolve()
   .then(testDefaultCsvPathUsesLocalFolder)
   .then(() => console.log('PASS default CSV path uses local folder'))
@@ -285,6 +410,16 @@ Promise.resolve()
   .then(() => console.log('PASS pool max_parallel=2 overlaps'))
   .then(testPoolSequentialOne)
   .then(() => console.log('PASS pool max_parallel=1 sequential'))
+  .then(testMp4EngineIdmCallsIdmFirst)
+  .then(() => console.log('PASS MP4 选 idm 先调 IDM'))
+  .then(testMp4EngineFfmpegFirst)
+  .then(() => console.log('PASS MP4 选 ffmpeg 先调 ffmpeg'))
+  .then(testM3u8NeverUsesIdm)
+  .then(() => console.log('PASS M3U8 永不走 IDM'))
+  .then(testEngineFallbackChain)
+  .then(() => console.log('PASS 引擎按链兜底'))
+  .then(testNonInteractiveIdmFallsBackToAria2)
+  .then(() => console.log('PASS 非交互模式选 idm 回退 aria2'))
   .finally(() => fs.rmSync(logDir, { recursive: true, force: true }))
   .catch(error => {
     console.error(error);

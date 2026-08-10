@@ -78,6 +78,16 @@ label input[type="number"] {
   font-size: 13px;
 }
 
+label select {
+  width: 100%;
+  margin-top: 4px;
+  padding: 6px 8px;
+  border: 1px solid #bcccd9;
+  border-radius: 4px;
+  font-size: 13px;
+  background: #fff;
+}
+
 label.check {
   display: flex;
   align-items: center;

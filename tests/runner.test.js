@@ -47,6 +47,12 @@ test('spawnSpec 使用 ELECTRON_RUN_AS_NODE=1', () => {
   assert.equal(spec.options.env.ELECTRON_RUN_AS_NODE, '1');
 });
 
+test('spawnSpec 支持 extraEnv 合并', () => {
+  const spec = spawnSpec('C:\\x\\script.js', ['--dry-run'], { AGE_RUN_MODE: 'interactive' });
+  assert.equal(spec.options.env.AGE_RUN_MODE, 'interactive');
+  assert.equal(spec.options.env.ELECTRON_RUN_AS_NODE, '1');
+});
+
 test('启动成功且锁写入子进程 pid', async () => {
   const dir = tmpDir();
   const lock = path.join(dir, 'run.lock');

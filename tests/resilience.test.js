@@ -1,7 +1,7 @@
 'use strict';
 
 const assert = require('node:assert/strict');
-const { fetchText, processAllAnime } = require('../anime_updater.js');
+const { fetchText, getBase, processAllAnime } = require('../anime_updater.js');
 
 const tests = [];
 function test(name, fn) {
@@ -166,6 +166,32 @@ test('部分成功时正常写待下载清单', async () => {
   assert.equal(result.failed, 1);
   assert.equal(csvCalls.length, 1);
   assert.equal(csvCalls[0].length, 1);
+});
+
+test('fetchText 请求头含 Connection: close', async () => {
+  let captured = null;
+  await fetchText('https://example.test/', null, {
+    fetchImpl: async (url, opts) => {
+      captured = opts.headers;
+      return { ok: true, text: async () => 'ok' };
+    },
+    retries: 0,
+  });
+  assert.equal(captured['Connection'], 'close');
+});
+
+test('getBase 默认 www.agedm.io', () => {
+  delete process.env.AGE_BASE;
+  assert.equal(getBase(), 'https://www.agedm.io');
+});
+
+test('getBase 支持 AGE_BASE 覆盖', () => {
+  process.env.AGE_BASE = 'https://mirror.example.com';
+  try {
+    assert.equal(getBase(), 'https://mirror.example.com');
+  } finally {
+    delete process.env.AGE_BASE;
+  }
 });
 
 let passed = 0;

@@ -159,6 +159,27 @@ test('max_parallel 10 通过', () => {
   assert.equal(validateConfig(c).ok, true);
 });
 
+test('download_engine 非法值被拒', () => {
+  const c = valid();
+  c.defaults.download_engine = 'wget';
+  const r = validateConfig(c);
+  assert.equal(r.ok, false);
+  assert.ok(r.errors['defaults.download_engine']);
+});
+
+test('download_engine 三值通过', () => {
+  for (const v of ['aria2', 'idm', 'ffmpeg']) {
+    const c = valid();
+    c.defaults.download_engine = v;
+    assert.equal(validateConfig(c).ok, true);
+  }
+});
+
+test('download_engine 缺省通过', () => {
+  const c = valid();
+  assert.equal(validateConfig(c).ok, true);
+});
+
 let passed = 0;
 Promise.resolve()
   .then(async () => {

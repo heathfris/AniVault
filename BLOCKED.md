@@ -2,6 +2,11 @@
 
 无
 
+## 番仓 AniVault 0.4.0 待裁决/范围外（2026-08-10）
+- 任务书写“M3U8 永远 ffmpeg→aria2”，与既有用例“M3U8 uses aria2 with HLS”（aria2 先）冲突；按“旧断言不许改 + 默认 aria2 行为不变”拍板保留 M3U8 为 aria2→ffmpeg（永不走 IDM），已在 PROGRESS 记录。
+- 引擎链：默认 aria2 = aria2→ffmpeg（不含 IDM，保持 0.3.x 行为）；选 idm = idm→aria2→ffmpeg；选 ffmpeg = ffmpeg→aria2→idm；非交互模式剔除 IDM。
+- 单部番启停、多站、安装包、顺手重构仍留后续件。
+
 ## 番仓 AniVault 0.3.1 待裁决/范围外（2026-08-10）
 - 根因已确认：18:31–18:34 的 fetch failed 是 agedm.io 间歇网络失败；本件加 fetch 失败重试 1 次（间隔 3 秒）。
 - 拍板：超时逻辑不变，即超时不重试（否则默认 3 秒间隔会拖慢既有超时测试与真实超时路径）；仅非超时失败重试。
@@ -67,3 +72,5 @@
 2026-08-10 18:34:17 BLOCKED: 穹庐下的魔女: fetch failed
 2026-08-10 18:34:17 BLOCKED: 幼女战记 第二季: fetch failed
 2026-08-10 18:34:18 BLOCKED: 擅长逃跑的殿下 第二季: fetch failed
+2026-08-10 19:17:11 BLOCKED: 擅长逃跑的殿下 第二季 第1集: 下载失败 线路5取址失败
+2026-08-10 19:17:11 BLOCKED: 擅长逃跑的殿下 第二季 第2集: 下载失败 线路5取址失败

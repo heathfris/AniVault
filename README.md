@@ -1,4 +1,4 @@
-# 番仓 AniVault（Demo 0.3.1）
+# 番仓 AniVault（Demo 0.4.0）
 
 AGE 动漫自动追更下载器的新桌面面板：查看/修改/保存配置，触发 dry-run 或下载、停止运行、看实时日志与待下载清单、打开下载目录。0.3.0 起下载引擎改为 aria2。
 
@@ -6,15 +6,23 @@ AGE 动漫自动追更下载器的新桌面面板：查看/修改/保存配置�
 
 - 全局设置与追番清单增删改查，保存前逐字段校验、原子写盘、未知字段保留
 - 运行控制：Dry-run 检查更新 / 立即下载 / 停止，单实例锁防重复任务
-- 下载引擎：MP4 与 M3U8 默认 aria2（`tools/aria2/aria2c.exe`），缺失或失败回退 ffmpeg；IDM 不再参与主流程（函数保留）
+- 下载引擎可切换：`defaults.download_engine`（aria2 / idm / ffmpeg，默认 aria2），面板下拉选择；MP4 所选引擎优先，失败按 aria2→ffmpeg→idm 兜底；M3U8 只用 ffmpeg/aria2（永不走 IDM）；IDM 仅面板交互模式生效
 - 并发下载：`defaults.max_parallel`（默认 1，范围 1-10，推荐 3），缺失集按并发池下载
-- 网络健壮性：请求 30 秒超时；fetch 失败自动重试 1 次（间隔 3 秒，超时不重试）；首页失败记 BLOCKED 后继续，单部番失败记 BLOCKED 后继续下一部，不再中断整个运行
+- 网络健壮性：请求 30 秒超时、`Connection: close`、fetch 失败自动重试 1 次（间隔 3 秒，超时不重试）；站点可由 `AGE_BASE` 覆盖（默认 https://www.agedm.io）；首页失败记 BLOCKED 后继续，单部番失败记 BLOCKED 后继续下一部，不再中断整个运行
 - 清单保护：查询全部失败且本运行 0 行时保留上次待下载清单；有行才写新清单
 - downloaded_start 自动规则：文件夹已有 ≥1 集 → 1，0 集 → 0（数不出集数时不改）
-- 日志区合并显示 BLOCKED 末尾，网络失败不再“无声”
-- 实时日志（本次运行输出 + PROGRESS 末尾，上滚不拉回）、待下载清单表格、打开下载目录
+- 日志区只显示 PROGRESS 末尾（BLOCKED 仍照常写入文件）
+- 实时日志（PROGRESS 末尾，上滚不拉回）、待下载清单表格、打开下载目录
 
-暂不包含：站点选择、多站爬取、单部番启停开关、安装包（见 BLOCKED.md）。`auto_close_idm` 配置暂不生效。
+暂不包含：站点选择、多站爬取、单部番启停开关、安装包（见 BLOCKED.md）。`auto_close_idm` 仅在本次有 IDM 成功下载时生效。
+
+## 网络排查
+
+agedm.io 偶发 fetch failed 时：
+
+- 已内置：请求 30 秒超时、`Connection: close`、fetch 失败自动重试 1 次（间隔 3 秒）、失败记 BLOCKED 后继续运行
+- 可尝试换 DNS：`119.29.29.29`（腾讯）或 `223.5.5.5`（阿里）
+- 可用环境变量 `AGE_BASE` 覆盖站点地址（默认 `https://www.agedm.io`）
 
 ## 环境
 
@@ -41,4 +49,4 @@ node tests/csv.test.js
 node tests/resilience.test.js
 ```
 
-当前版本 0.3.1，版本记录见使用说明.md 文末。
+当前版本 0.4.0，版本记录见使用说明.md 文末。

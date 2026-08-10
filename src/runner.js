@@ -42,12 +42,12 @@ function releaseLock(lockPath, pid) {
   }
 }
 
-function spawnSpec(scriptPath, args = []) {
+function spawnSpec(scriptPath, args = [], extraEnv = {}) {
   return {
     command: process.execPath,
     args: [scriptPath, ...args],
     options: {
-      env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
+      env: { ...process.env, ELECTRON_RUN_AS_NODE: '1', ...extraEnv },
       windowsHide: true,
     },
   };
@@ -72,7 +72,7 @@ function attachLines(stream, cb) {
   });
 }
 
-function createRunner({ scriptPath, lockPath = defaultLockPath(process.cwd()), onStdout, onStderr, onExit } = {}) {
+function createRunner({ scriptPath, lockPath = defaultLockPath(process.cwd()), onStdout, onStderr, onExit, extraEnv = {} } = {}) {
   let child = null;
 
   function start(args = []) {
@@ -81,7 +81,7 @@ function createRunner({ scriptPath, lockPath = defaultLockPath(process.cwd()), o
     if (lockedPid !== null && pidAlive(lockedPid)) {
       return { ok: false, reason: 'locked', pid: lockedPid };
     }
-    const spec = spawnSpec(scriptPath, args);
+    const spec = spawnSpec(scriptPath, args, extraEnv);
     child = spawn(spec.command, spec.args, spec.options);
     writeLock(lockPath, child.pid);
     attachLines(child.stdout, onStdout);

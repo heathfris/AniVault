@@ -24,6 +24,13 @@
         <input id="max_parallel" type="number" min="1" max="10" step="1" value="1">
         <span class="hint">推荐：3</span>
       </label>
+      <label>下载引擎
+        <select id="download_engine">
+          <option value="aria2">aria2（默认）</option>
+          <option value="idm">IDM（仅交互模式）</option>
+          <option value="ffmpeg">ffmpeg</option>
+        </select>
+      </label>
       <label class="check">
         <input id="auto_repair" type="checkbox"> 缺失集自动补下
       </label>
