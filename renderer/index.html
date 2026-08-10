@@ -31,6 +31,10 @@
           <option value="ffmpeg">ffmpeg</option>
         </select>
       </label>
+      <label>单次下载等待上限（分钟，5-60）
+        <input id="attempt_timeout_min" type="number" min="5" max="60" step="1" value="20">
+        <span class="hint">默认 20，替代固定 45 分钟</span>
+      </label>
       <label class="check">
         <input id="auto_repair" type="checkbox"> 缺失集自动补下
       </label>

@@ -1,5 +1,11 @@
 # PROGRESS
 
+## 番仓 AniVault 0.4.1 开工回执（2026-08-10）
+- 理解的目标：修“部分集成功但 downloaded_end 不动”的 bug（现只有全部成功才推进），并把单次下载等待上限从固定 45 分钟改为可配置（attempt_timeout_min，默认 20、范围 5-60）。
+- 顺序：任务0核对 → 部分成功推进 TDD（computeNewEnd + processOneAnime 接线）→ 超时配置 TDD（validator/downloadEpisode/面板）→ 文档版本 0.4.1 四面同步 → 提交。
+- 最大风险：推进 end 后缺口由 auto_repair 补（默认 true），若用户关掉 auto_repair 则低集缺口不会被重列——按拍板接受；end 只前进不倒退。
+- 超时只作用于等待文件稳定阶段；取址与线路重试逻辑不变；未传值时仍用 45 分钟兜底。
+
 ## 番仓 AniVault 0.4.0 开工回执（2026-08-10）
 - 理解的目标：三合一——日志区只显示 PROGRESS；fetch 加固（Connection: close + AGE_BASE + 排查文档）；下载引擎可切换（默认 aria2，可选 IDM/ffmpeg，面板下拉）。
 - 顺序：任务0核对 → fetch 加固 TDD → 日志区收敛 → 引擎选择 TDD（含 IDM 恢复/auto_close）→ validator/runner/面板 → 文档版本 0.4.0 四面同步 → 提交。
@@ -402,3 +408,24 @@ D:\project_codex\����\tools\aria2\aria2c.exe: unknown option -- hls-segm
 2026-08-10 19:19:14   擅长逃跑的殿下 第二季 第04集 - 在线播放 - AGE动漫.mp4 线路5: 交给 ffmpeg (M3U8) https://v.lzcdn31.com/20260808/9511_7df64447/index.m3u8...
 2026-08-10 19:24:44 擅长逃跑的殿下 第二季 第4集: 完成（线路5，305739977 字节）
 2026-08-10 19:24:44 待下载清单已写: D:\project_codex\番仓\local\待下载清单.csv（4 行）
+2026-08-10 19:46:44 启动 (dry-run)
+2026-08-10 19:46:44 计划任务时间无需变更（18:00）
+2026-08-10 19:46:46 尼古喵喵: 无新集（downloaded_end=6，站内 6）
+2026-08-10 19:46:47 BanG Dream! YUME∞MITA: 无新集（downloaded_end=8，站内 8）
+2026-08-10 19:46:48 感谢对战 大小姐才不玩格斗游戏: 无新集（downloaded_end=5，站内 5）
+2026-08-10 19:46:49 再见，拉拉: 无新集（downloaded_end=6，站内 6）
+2026-08-10 19:46:50 穹庐下的魔女: 无新集（downloaded_end=7，站内 7）
+2026-08-10 19:46:51 幼女战记 第二季: 无新集（downloaded_end=5，站内 5）
+2026-08-10 19:46:51 擅长逃跑的殿下 第二季: downloaded_start 修正为 1
+2026-08-10 19:46:52 擅长逃跑的殿下 第二季: 站内最新 4，本次下载 1,2,3,4（downloaded_end=0，单次上限 10，并发 3）
+2026-08-10 19:46:52 待下载清单已写: D:\project_codex\番仓\local\待下载清单.csv（4 行）
+2026-08-10 19:47:10 启动 (dry-run)
+2026-08-10 19:47:10 计划任务时间无需变更（18:00）
+2026-08-10 19:47:12 尼古喵喵: 无新集（downloaded_end=6，站内 6）
+2026-08-10 19:47:13 BanG Dream! YUME∞MITA: 无新集（downloaded_end=8，站内 8）
+2026-08-10 19:47:14 感谢对战 大小姐才不玩格斗游戏: 无新集（downloaded_end=5，站内 5）
+2026-08-10 19:47:15 再见，拉拉: 无新集（downloaded_end=6，站内 6）
+2026-08-10 19:47:16 穹庐下的魔女: 无新集（downloaded_end=7，站内 7）
+2026-08-10 19:47:17 幼女战记 第二季: 无新集（downloaded_end=5，站内 5）
+2026-08-10 19:47:18 擅长逃跑的殿下 第二季: 站内最新 4，本次下载 1,2,3,4（downloaded_end=0，单次上限 10，并发 3）
+2026-08-10 19:47:18 待下载清单已写: D:\project_codex\番仓\local\待下载清单.csv（4 行）

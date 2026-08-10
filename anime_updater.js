@@ -317,6 +317,7 @@ async function downloadEpisode(anime, ep, folderDir, deps = {}) {
   const waitForDownload = deps.waitForFile || waitForFile;
   const engine = deps.engine || 'aria2';
   const runMode = deps.runMode || process.env.AGE_RUN_MODE || (readTaskState() || {}).run_mode || 'interactive';
+  const attemptTimeoutMs = deps.attemptTimeoutMs || ATTEMPT_TIMEOUT_MS;
   const fname = resolveFileName(anime, ep);
   if (fname.error) throw new Error(fname.error);
   const filename = fname.name;
@@ -371,7 +372,7 @@ async function downloadEpisode(anime, ep, folderDir, deps = {}) {
         try { fs.renameSync(attemptPath, attemptPath + '.failed'); } catch (e) { /* 没有文件则忽略 */ }
         continue;
       }
-      res = await waitForDownload(attemptPath, MIN_SIZE, STABLE_MS, ATTEMPT_TIMEOUT_MS);
+      res = await waitForDownload(attemptPath, MIN_SIZE, STABLE_MS, attemptTimeoutMs);
       if (res.ok) {
         engineOk = true;
         okEngineName = engineName;
@@ -531,6 +532,14 @@ function resolveDownloadedStart(fileCount, current) {
   return fileCount >= 1 ? 1 : 0;
 }
 
+function computeNewEnd(end, missing, results) {
+  let highest = end;
+  for (let i = 0; i < missing.length; i++) {
+    if (results[i] && results[i].ok && missing[i] > highest) highest = missing[i];
+  }
+  return highest;
+}
+
 function isIdmRunning() {
   const r = spawnSync('tasklist.exe', ['/FI', 'IMAGENAME eq IDMan.exe', '/NH'], { encoding: 'utf8', windowsHide: true });
   return r.status === 0 && /IDMan\.exe/i.test(r.stdout || '');
@@ -674,6 +683,9 @@ async function processOneAnime(title, info, content, options = {}) {
   const maxParallel = Number.isFinite(maxParallelRaw) && maxParallelRaw >= 1 && maxParallelRaw <= 10 ? maxParallelRaw : 1;
   const engine = (defaults.download_engine === 'idm' || defaults.download_engine === 'ffmpeg') ? defaults.download_engine : 'aria2';
   const runMode = deps.runMode || process.env.AGE_RUN_MODE || (readTaskState() || {}).run_mode || 'interactive';
+  const attemptTimeoutMinRaw = parseInt(defaults.attempt_timeout_min, 10);
+  const attemptTimeoutMin = Number.isFinite(attemptTimeoutMinRaw) && attemptTimeoutMinRaw >= 5 && attemptTimeoutMinRaw <= 60 ? attemptTimeoutMinRaw : 20;
+  const attemptTimeoutMs = attemptTimeoutMin * 60 * 1000;
   let changed = false;
 
   if (!info.site_id) {
@@ -773,7 +785,7 @@ async function processOneAnime(title, info, content, options = {}) {
     try {
       const fname = resolveFileName(anime, ep);
       if (fname.error) throw new Error(fname.error);
-      const r = await processDownload(anime, ep, folder.dir, { engine, runMode });
+      const r = await processDownload(anime, ep, folder.dir, { engine, runMode, attemptTimeoutMs });
       progress(`${title} 第${ep}集: 完成${r.skipped ? '（已存在）' : `（线路${r.src}，${r.size} 字节）`}`);
       return { ok: true, r };
     } catch (e) {
@@ -781,12 +793,14 @@ async function processOneAnime(title, info, content, options = {}) {
       return { ok: false, error: e.message };
     }
   }, maxParallel);
-  const allOk = results.every(x => x && x.ok);
+  const failedCount = results.filter(x => !x || !x.ok).length;
   const idmUsed = results.some(x => x && x.ok && x.r && x.r.engine === 'idm');
-  if (allOk && missing.length > 0) {
-    const newEnd = Math.max(...missing);
+  const newEnd = computeNewEnd(end, missing, results);
+  if (newEnd > end) {
     info.downloaded_end = newEnd;
     changed = true;
+    if (failedCount > 0) progress(`${title}: 部分成功，end ${end} -> ${newEnd}（${failedCount} 集失败留待补下）`);
+    else progress(`${title}: 全部成功，end ${end} -> ${newEnd}`);
     const newRes = resolveFolderName(anime, folder, newEnd);
     if (newRes.error) {
       blocked(`${title}: ${newRes.error}`);
@@ -878,7 +892,7 @@ async function main() {
   await processAllAnime(content, { dryRun });
 }
 
-module.exports = { searchSite, parseFolderName, applyTemplate, validName, resolveFolderName, resolveFileName, renameFolder, safeRenameFolder, getEpisodeFileMatcher, countEpisodeFiles, findEpisodeFile, planDownloadRange, findMissingEps, resolveDownloadedStart, getBase, engineChain, getCsvPath, getFfmpegPath, getAria2Path, getFfmpegTempPath, formatLogTime, isIdmRunning, ensureIdmMinimized, idmHasActivity, closeIdmIfIdle, blocked, progress, getMaxEp, getPlayUrl, callIdm, callFfmpeg, callAria2, fetchText, runPool, processOneAnime, processAllAnime, waitForFile, downloadEpisode, findFolder, findFolderByTitle, normalizeTime, syncTask, readTaskState, writeCsv };
+module.exports = { searchSite, parseFolderName, applyTemplate, validName, resolveFolderName, resolveFileName, renameFolder, safeRenameFolder, getEpisodeFileMatcher, countEpisodeFiles, findEpisodeFile, planDownloadRange, findMissingEps, resolveDownloadedStart, computeNewEnd, getBase, engineChain, getCsvPath, getFfmpegPath, getAria2Path, getFfmpegTempPath, formatLogTime, isIdmRunning, ensureIdmMinimized, idmHasActivity, closeIdmIfIdle, blocked, progress, getMaxEp, getPlayUrl, callIdm, callFfmpeg, callAria2, fetchText, runPool, processOneAnime, processAllAnime, waitForFile, downloadEpisode, findFolder, findFolderByTitle, normalizeTime, syncTask, readTaskState, writeCsv };
 
 if (require.main === module) {
   main().catch(e => {

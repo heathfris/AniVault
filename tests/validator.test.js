@@ -180,6 +180,44 @@ test('download_engine 缺省通过', () => {
   assert.equal(validateConfig(c).ok, true);
 });
 
+test('attempt_timeout_min 4 被拒', () => {
+  const c = valid();
+  c.defaults.attempt_timeout_min = 4;
+  const r = validateConfig(c);
+  assert.equal(r.ok, false);
+  assert.ok(r.errors['defaults.attempt_timeout_min']);
+});
+
+test('attempt_timeout_min 61 被拒', () => {
+  const c = valid();
+  c.defaults.attempt_timeout_min = 61;
+  assert.equal(validateConfig(c).ok, false);
+});
+
+test('attempt_timeout_min 小数被拒', () => {
+  const c = valid();
+  c.defaults.attempt_timeout_min = 20.5;
+  assert.equal(validateConfig(c).ok, false);
+});
+
+test('attempt_timeout_min 5 通过', () => {
+  const c = valid();
+  c.defaults.attempt_timeout_min = 5;
+  assert.equal(validateConfig(c).ok, true);
+});
+
+test('attempt_timeout_min 20 通过', () => {
+  const c = valid();
+  c.defaults.attempt_timeout_min = 20;
+  assert.equal(validateConfig(c).ok, true);
+});
+
+test('attempt_timeout_min 60 通过', () => {
+  const c = valid();
+  c.defaults.attempt_timeout_min = 60;
+  assert.equal(validateConfig(c).ok, true);
+});
+
 let passed = 0;
 Promise.resolve()
   .then(async () => {

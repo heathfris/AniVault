@@ -16,6 +16,7 @@ const {
   getFfmpegPath,
   getFfmpegTempPath,
   getEpisodeFileMatcher,
+  computeNewEnd,
   resolveDownloadedStart,
   runPool,
   writeCsv,
@@ -73,6 +74,86 @@ function testResolveStartZero() {
 
 function testResolveStartUnknownKeeps() {
   assert.equal(resolveDownloadedStart(-1, 7), 7);
+}
+
+function testComputeNewEndPartialSuccess() {
+  const end = computeNewEnd(0, [1, 2, 3, 4], [
+    { ok: false },
+    { ok: false },
+    { ok: true },
+    { ok: true },
+  ]);
+  assert.equal(end, 4);
+}
+
+function testComputeNewEndAllFailKeeps() {
+  const end = computeNewEnd(0, [1, 2], [
+    { ok: false },
+    { ok: false },
+  ]);
+  assert.equal(end, 0);
+}
+
+function testComputeNewEndAllSuccess() {
+  const end = computeNewEnd(0, [1, 2, 3], [
+    { ok: true },
+    { ok: true },
+    { ok: true },
+  ]);
+  assert.equal(end, 3);
+}
+
+function testComputeNewEndNeverBackwards() {
+  const end = computeNewEnd(5, [3, 4], [
+    { ok: true },
+    { ok: true },
+  ]);
+  assert.equal(end, 5);
+}
+
+async function testDownloadEpisodePassesAttemptTimeout() {
+  const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'age-anime-test-'));
+  try {
+    let capturedTimeout = null;
+    const anime = { title: 'Test Anime', site_id: 12345, downloaded_end: 1 };
+    await downloadEpisode(anime, 2, folder, {
+      getPlayUrl: async () => 'https://example.test/video.mp4',
+      callAria2: (url, dir, filename) => {
+        fs.writeFileSync(path.join(dir, filename), 'stub');
+        return { status: 0 };
+      },
+      attemptTimeoutMs: 12345,
+      waitForFile: async (filePath, minSize, stableMs, timeoutMs) => {
+        capturedTimeout = timeoutMs;
+        return { ok: true, size: 100 * 1024 * 1024 };
+      },
+    });
+    assert.equal(capturedTimeout, 12345);
+  } finally {
+    fs.rmSync(folder, { recursive: true, force: true });
+  }
+}
+
+async function testDownloadEpisodeDefaultTimeoutFallback() {
+  const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'age-anime-test-'));
+  try {
+    let capturedTimeout = null;
+    const anime = { title: 'Test Anime', site_id: 12345, downloaded_end: 1 };
+    await downloadEpisode(anime, 2, folder, {
+      getPlayUrl: async () => 'https://example.test/video.mp4',
+      callAria2: (url, dir, filename) => {
+        fs.writeFileSync(path.join(dir, filename), 'stub');
+        return { status: 0 };
+      },
+      waitForFile: async (filePath, minSize, stableMs, timeoutMs) => {
+        capturedTimeout = timeoutMs;
+        return { ok: true, size: 100 * 1024 * 1024 };
+      },
+    });
+    assert.equal(capturedTimeout, 45 * 60 * 1000);
+  } finally {
+    fs.rmSync(folder, { recursive: true, force: true });
+  }
 }
 
 async function testDownloadEpisodeUsesAnimeSiteId() {
@@ -396,6 +477,18 @@ Promise.resolve()
   .then(() => console.log('PASS downloaded_start =0 → 0'))
   .then(testResolveStartUnknownKeeps)
   .then(() => console.log('PASS downloaded_start -1 保持原值'))
+  .then(testComputeNewEndPartialSuccess)
+  .then(() => console.log('PASS 部分成功 end 推进到最高成功集'))
+  .then(testComputeNewEndAllFailKeeps)
+  .then(() => console.log('PASS 全部失败 end 不变'))
+  .then(testComputeNewEndAllSuccess)
+  .then(() => console.log('PASS 全部成功 end 取最高集'))
+  .then(testComputeNewEndNeverBackwards)
+  .then(() => console.log('PASS end 不倒退'))
+  .then(testDownloadEpisodePassesAttemptTimeout)
+  .then(() => console.log('PASS attemptTimeoutMs 传给 waitForFile'))
+  .then(testDownloadEpisodeDefaultTimeoutFallback)
+  .then(() => console.log('PASS 未传 attemptTimeoutMs 用默认 45 分钟兜底'))
   .then(testDownloadEpisodeUsesAnimeSiteId)
   .then(() => console.log('PASS downloadEpisode uses anime.site_id'))
   .then(testM3u8UsesAria2WithHls)

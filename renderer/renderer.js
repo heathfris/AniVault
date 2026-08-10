@@ -70,6 +70,7 @@ function render() {
   $('max_download').value = state.config.defaults?.max_download ?? '';
   $('max_parallel').value = state.config.defaults?.max_parallel ?? 1;
   $('download_engine').value = state.config.defaults?.download_engine || 'aria2';
+  $('attempt_timeout_min').value = state.config.defaults?.attempt_timeout_min ?? 20;
   $('auto_repair').checked = Boolean(state.config.defaults?.auto_repair);
   $('auto_close_idm').checked = Boolean(state.config.defaults?.auto_close_idm);
   $('anime-list').innerHTML = '';
@@ -86,6 +87,7 @@ function collectConfig() {
       max_download: numberOrNull($('max_download').value),
       max_parallel: numberOrNull($('max_parallel').value),
       download_engine: $('download_engine').value,
+      attempt_timeout_min: numberOrNull($('attempt_timeout_min').value),
       auto_repair: $('auto_repair').checked,
       auto_close_idm: $('auto_close_idm').checked,
     },

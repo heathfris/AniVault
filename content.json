@@ -4,6 +4,7 @@
     "max_download": 10,
     "max_parallel": 3,
     "download_engine": "aria2",
+    "attempt_timeout_min": 20,
     "auto_repair": true,
     "auto_close_idm": true
   },
@@ -54,7 +55,7 @@
     "擅长逃跑的殿下 第二季": {
       "site_id": 20260178,
       "update_time": "22:30",
-      "downloaded_start": 0,
+      "downloaded_start": 1,
       "downloaded_end": 0,
       "site_latest": 4
     }
