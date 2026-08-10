@@ -1,3 +1,4 @@
 local/
 tools/ffmpeg/ffmpeg.exe
+tools/aria2/
 node_modules/

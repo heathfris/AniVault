@@ -25,6 +25,12 @@ function isPositiveInt(v) {
   return (typeof v === 'number' ? v : parseInt(v, 10)) > 0;
 }
 
+function isIntInRange(v, min, max) {
+  if (!isInt(v)) return false;
+  const n = typeof v === 'number' ? v : parseInt(v, 10);
+  return n >= min && n <= max;
+}
+
 function validateConfig(config) {
   const errors = {};
   if (!config || typeof config !== 'object' || Array.isArray(config)) {
@@ -42,6 +48,7 @@ function validateConfig(config) {
       errors.defaults = 'defaults 必须是对象';
     } else {
       if (!isNonNegativeInt(defaults.max_download)) errors['defaults.max_download'] = '必须是非负整数';
+      if (!empty(defaults.max_parallel) && !isIntInRange(defaults.max_parallel, 1, 10)) errors['defaults.max_parallel'] = '必须是 1-10 的整数';
       if (typeof defaults.auto_repair !== 'boolean') errors['defaults.auto_repair'] = '必须是 true/false';
       if (typeof defaults.auto_close_idm !== 'boolean') errors['defaults.auto_close_idm'] = '必须是 true/false';
     }

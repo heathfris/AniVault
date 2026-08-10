@@ -84,6 +84,13 @@ label.check {
   gap: 6px;
 }
 
+.hint {
+  display: block;
+  color: #829ab1;
+  font-size: 11px;
+  margin-top: 2px;
+}
+
 .section-head {
   display: flex;
   justify-content: space-between;

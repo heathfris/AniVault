@@ -127,6 +127,38 @@ test('空的可选字段允许', () => {
   assert.equal(r.ok, true);
 });
 
+test('max_parallel 0 被拒', () => {
+  const c = valid();
+  c.defaults.max_parallel = 0;
+  const r = validateConfig(c);
+  assert.equal(r.ok, false);
+  assert.ok(r.errors['defaults.max_parallel']);
+});
+
+test('max_parallel 11 被拒', () => {
+  const c = valid();
+  c.defaults.max_parallel = 11;
+  assert.equal(validateConfig(c).ok, false);
+});
+
+test('max_parallel 小数被拒', () => {
+  const c = valid();
+  c.defaults.max_parallel = 1.5;
+  assert.equal(validateConfig(c).ok, false);
+});
+
+test('max_parallel 1 通过', () => {
+  const c = valid();
+  c.defaults.max_parallel = 1;
+  assert.equal(validateConfig(c).ok, true);
+});
+
+test('max_parallel 10 通过', () => {
+  const c = valid();
+  c.defaults.max_parallel = 10;
+  assert.equal(validateConfig(c).ok, true);
+});
+
 let passed = 0;
 Promise.resolve()
   .then(async () => {

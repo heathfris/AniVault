@@ -1,3 +1,5 @@
+'use strict';
+
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
@@ -14,6 +16,7 @@ const {
   getFfmpegPath,
   getFfmpegTempPath,
   getEpisodeFileMatcher,
+  runPool,
   writeCsv,
 } = require('../anime_updater.js');
 
@@ -63,6 +66,8 @@ async function testDownloadEpisodeUsesAnimeSiteId() {
   const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'age-anime-test-'));
   try {
     const calls = [];
+    const idmCalls = [];
+    const ffmpegCalls = [];
     const anime = {
       title: 'Test Anime',
       site_id: 12345,
@@ -76,118 +81,164 @@ async function testDownloadEpisodeUsesAnimeSiteId() {
         calls.push({ siteId, ep, source });
         return 'https://example.test/video.mp4';
       },
-      callIdm: () => {},
+      callAria2: (url, dir, filename) => {
+        fs.writeFileSync(path.join(dir, filename), 'stub');
+        return { status: 0 };
+      },
+      callIdm: () => idmCalls.push('idm'),
+      callFfmpeg: () => ffmpegCalls.push('ffmpeg'),
       runMode: 'interactive',
       waitForFile: async () => ({ ok: true, size: 100 * 1024 * 1024 }),
     });
 
     assert.equal(result.src, 1);
     assert.deepEqual(calls, [{ siteId: 12345, ep: 2, source: 1 }]);
+    assert.deepEqual(idmCalls, []);
+    assert.deepEqual(ffmpegCalls, []);
   } finally {
     fs.rmSync(folder, { recursive: true, force: true });
   }
 }
 
-async function testM3u8UsesFfmpegInsteadOfIdm() {
+async function testM3u8UsesAria2WithHls() {
   const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'age-anime-test-'));
   try {
     const calls = [];
+    let ffmpeg = 0;
     const anime = { title: 'Test Anime', site_id: 12345, downloaded_end: 1 };
     const result = await downloadEpisode(anime, 2, folder, {
       getPlayUrl: async () => 'https://example.test/playlist.m3u8',
-      callIdm: (url, dir, filename) => {
-        calls.push('idm');
+      callAria2: (url, dir, filename, headers, isM3u8) => {
+        calls.push({ url, isM3u8 });
         fs.writeFileSync(path.join(dir, filename), 'stub');
+        return { status: 0 };
       },
-      callFfmpeg: () => calls.push('ffmpeg'),
+      callFfmpeg: () => { ffmpeg += 1; },
       runMode: 'interactive',
       waitForFile: async () => ({ ok: true, size: 100 * 1024 * 1024 }),
     });
     assert.equal(result.src, 1);
-    assert.deepEqual(calls, ['ffmpeg']);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].isM3u8, true);
+    assert.equal(ffmpeg, 0);
   } finally {
     fs.rmSync(folder, { recursive: true, force: true });
   }
 }
 
-async function testFailedPrimaryFallsBackToSecondSource() {
+async function testAria2FailureFallsBackToFfmpeg() {
   const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'age-anime-test-'));
   try {
-    const sources = [];
-    const calls = [];
-    let waits = 0;
+    const order = [];
     const anime = { title: 'Test Anime', site_id: 12345, downloaded_end: 1 };
     const result = await downloadEpisode(anime, 2, folder, {
-      getPlayUrl: async (siteId, ep, source) => {
-        sources.push(source);
-        return `https://example.test/video-${source}.mp4`;
-      },
-      callIdm: (url, dir, filename) => {
-        calls.push('idm');
-        fs.writeFileSync(path.join(dir, filename), 'stub');
-      },
-      runMode: 'interactive',
-      waitForFile: async () => {
-        waits += 1;
-        return waits === 1 ? { ok: false, size: 0 } : { ok: true, size: 100 * 1024 * 1024 };
-      },
-    });
-    assert.equal(result.src, 2);
-    assert.deepEqual(sources, [1, 2]);
-    assert.deepEqual(calls, ['idm', 'idm']);
-  } finally {
-    fs.rmSync(folder, { recursive: true, force: true });
-  }
-}
-
-async function testPasswordModeMp4UsesFfmpeg() {
-  const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'age-anime-test-'));
-  try {
-    const calls = [];
-    const anime = { title: 'Test Anime', site_id: 12345, downloaded_end: 1 };
-    await downloadEpisode(anime, 2, folder, {
       getPlayUrl: async () => 'https://example.test/video.mp4',
-      callIdm: () => calls.push('idm'),
-      callFfmpeg: () => calls.push('ffmpeg'),
-      runMode: 'password',
-      waitForFile: async () => ({ ok: true, size: 100 * 1024 * 1024 }),
-    });
-    assert.deepEqual(calls, ['ffmpeg']);
-  } finally {
-    fs.rmSync(folder, { recursive: true, force: true });
-  }
-}
-
-async function testFfmpegExitFailureFallsBackImmediately() {
-  const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'age-anime-test-'));
-  try {
-    const sources = [];
-    let launches = 0;
-    let waits = 0;
-    const anime = { title: 'Test Anime', site_id: 12345, downloaded_end: 1 };
-    const result = await downloadEpisode(anime, 2, folder, {
-      getPlayUrl: async (siteId, ep, source) => {
-        sources.push(source);
-        return `https://example.test/source-${source}.m3u8`;
+      callAria2: () => {
+        order.push('aria2');
+        return { status: 1, stderr: 'HTTP 403' };
       },
       callFfmpeg: (url, dir, filename) => {
-        launches += 1;
-        if (launches === 1) return { status: 1, stderr: 'HTTP 403' };
+        order.push('ffmpeg');
         fs.writeFileSync(path.join(dir, filename), 'stub');
         return { status: 0 };
       },
-      runMode: 'password',
-      waitForFile: async () => {
-        waits += 1;
-        return { ok: true, size: 100 * 1024 * 1024 };
-      },
+      runMode: 'interactive',
+      waitForFile: async () => ({ ok: true, size: 100 * 1024 * 1024 }),
     });
-    assert.equal(result.src, 2);
-    assert.deepEqual(sources, [1, 2]);
-    assert.equal(waits, 1);
+    assert.equal(result.src, 1);
+    assert.deepEqual(order, ['aria2', 'ffmpeg']);
   } finally {
     fs.rmSync(folder, { recursive: true, force: true });
   }
+}
+
+async function testPasswordAndInteractiveMp4BothUseAria2() {
+  const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'age-anime-test-'));
+  try {
+    for (const runMode of ['interactive', 'password']) {
+      const order = [];
+      const anime = { title: 'Test Anime', site_id: 12345, downloaded_end: 1 };
+      const result = await downloadEpisode(anime, 2, folder, {
+        getPlayUrl: async () => 'https://example.test/video.mp4',
+        callAria2: (url, dir, filename) => {
+          order.push('aria2');
+          fs.writeFileSync(path.join(dir, filename), 'stub');
+          return { status: 0 };
+        },
+        callFfmpeg: () => order.push('ffmpeg'),
+        runMode,
+        waitForFile: async () => ({ ok: true, size: 100 * 1024 * 1024 }),
+      });
+      assert.equal(result.src, 1);
+      assert.deepEqual(order, ['aria2']);
+    }
+  } finally {
+    fs.rmSync(folder, { recursive: true, force: true });
+  }
+}
+
+async function testAria2AndFfmpegFailureFallsToNextSource() {
+  const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'age-anime-test-'));
+  try {
+    const sources = [];
+    const launches = [];
+    const anime = { title: 'Test Anime', site_id: 12345, downloaded_end: 1 };
+    const result = await downloadEpisode(anime, 2, folder, {
+      getPlayUrl: async (siteId, ep, source) => {
+        sources.push(source);
+        return `https://example.test/source-${source}.mp4`;
+      },
+      callAria2: (url, dir, filename) => {
+        launches.push('aria2');
+        if (sources.length === 2) {
+          fs.writeFileSync(path.join(dir, filename), 'stub');
+          return { status: 0 };
+        }
+        return { status: 1, stderr: 'fail' };
+      },
+      callFfmpeg: (url, dir, filename) => {
+        launches.push('ffmpeg');
+        if (sources.length === 1) return { status: 1, stderr: 'fail' };
+        fs.writeFileSync(path.join(dir, filename), 'stub');
+        return { status: 0 };
+      },
+      runMode: 'interactive',
+      waitForFile: async () => ({ ok: true, size: 100 * 1024 * 1024 }),
+    });
+    assert.equal(result.src, 2);
+    assert.deepEqual(sources, [1, 2]);
+    assert.deepEqual(launches, ['aria2', 'ffmpeg', 'aria2']);
+  } finally {
+    fs.rmSync(folder, { recursive: true, force: true });
+  }
+}
+
+async function testPoolParallelTwoOverlap() {
+  const active = { n: 0, max: 0 };
+  const worker = async ep => {
+    active.n += 1;
+    active.max = Math.max(active.max, active.n);
+    await new Promise(r => setTimeout(r, 120));
+    active.n -= 1;
+    return ep;
+  };
+  const results = await runPool([1, 2], worker, 2);
+  assert.equal(active.max, 2);
+  assert.deepEqual(results, [1, 2]);
+}
+
+async function testPoolSequentialOne() {
+  const active = { n: 0, max: 0 };
+  const worker = async ep => {
+    active.n += 1;
+    active.max = Math.max(active.max, active.n);
+    await new Promise(r => setTimeout(r, 60));
+    active.n -= 1;
+    return ep;
+  };
+  const results = await runPool([1, 2, 3], worker, 1);
+  assert.equal(active.max, 1);
+  assert.deepEqual(results, [1, 2, 3]);
 }
 
 Promise.resolve()
@@ -203,14 +254,18 @@ Promise.resolve()
   .then(() => console.log('PASS partial ffmpeg output is not an episode'))
   .then(testDownloadEpisodeUsesAnimeSiteId)
   .then(() => console.log('PASS downloadEpisode uses anime.site_id'))
-  .then(testM3u8UsesFfmpegInsteadOfIdm)
-  .then(() => console.log('PASS M3U8 uses ffmpeg instead of IDM'))
-  .then(testFailedPrimaryFallsBackToSecondSource)
-  .then(() => console.log('PASS failed primary falls back to source 2'))
-  .then(testPasswordModeMp4UsesFfmpeg)
-  .then(() => console.log('PASS password mode MP4 uses ffmpeg'))
-  .then(testFfmpegExitFailureFallsBackImmediately)
-  .then(() => console.log('PASS ffmpeg exit failure falls back immediately'))
+  .then(testM3u8UsesAria2WithHls)
+  .then(() => console.log('PASS M3U8 uses aria2 with HLS'))
+  .then(testAria2FailureFallsBackToFfmpeg)
+  .then(() => console.log('PASS aria2 failure falls back to ffmpeg'))
+  .then(testPasswordAndInteractiveMp4BothUseAria2)
+  .then(() => console.log('PASS password and interactive MP4 both use aria2'))
+  .then(testAria2AndFfmpegFailureFallsToNextSource)
+  .then(() => console.log('PASS aria2 and ffmpeg failure falls to next source'))
+  .then(testPoolParallelTwoOverlap)
+  .then(() => console.log('PASS pool max_parallel=2 overlaps'))
+  .then(testPoolSequentialOne)
+  .then(() => console.log('PASS pool max_parallel=1 sequential'))
   .finally(() => fs.rmSync(logDir, { recursive: true, force: true }))
   .catch(error => {
     console.error(error);

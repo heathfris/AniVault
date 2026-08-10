@@ -7,6 +7,7 @@ const state = {
   lastExit: null,
   logRun: [],
   logProgress: [],
+  logPinned: true,
 };
 
 function $(id) { return document.getElementById(id); }
@@ -68,6 +69,7 @@ function createCard(title, item) {
 function render() {
   $('fetch_time').value = state.config.fetch_time || '';
   $('max_download').value = state.config.defaults?.max_download ?? '';
+  $('max_parallel').value = state.config.defaults?.max_parallel ?? 1;
   $('auto_repair').checked = Boolean(state.config.defaults?.auto_repair);
   $('auto_close_idm').checked = Boolean(state.config.defaults?.auto_close_idm);
   $('anime-list').innerHTML = '';
@@ -82,6 +84,7 @@ function collectConfig() {
     fetch_time: $('fetch_time').value.trim(),
     defaults: {
       max_download: numberOrNull($('max_download').value),
+      max_parallel: numberOrNull($('max_parallel').value),
       auto_repair: $('auto_repair').checked,
       auto_close_idm: $('auto_close_idm').checked,
     },
@@ -196,12 +199,13 @@ function renderRun() {
 
 function renderLog() {
   const area = $('log-area');
+  const pinned = state.logPinned;
   const html = [];
   for (const l of state.logRun) html.push(escapeHtml(l));
   if (state.logRun.length && state.logProgress.length) html.push('— PROGRESS 末尾 —');
   for (const l of state.logProgress) html.push(escapeHtml(l));
   area.textContent = html.length ? html.join('\n') : '暂无日志';
-  area.scrollTop = area.scrollHeight;
+  if (pinned) area.scrollTop = area.scrollHeight;
 }
 
 async function poll() {
@@ -297,6 +301,10 @@ $('stop-run').addEventListener('click', async () => {
 });
 $('open-download').addEventListener('click', () => window.anivault.openDownloadDir());
 $('csv-refresh').addEventListener('click', refreshCsv);
+$('log-area').addEventListener('scroll', () => {
+  const area = $('log-area');
+  state.logPinned = area.scrollTop + area.clientHeight >= area.scrollHeight - 4;
+});
 
 setInterval(poll, 1000);
 load();

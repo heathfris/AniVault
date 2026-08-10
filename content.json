@@ -2,6 +2,7 @@
   "fetch_time": "18:00",
   "defaults": {
     "max_download": 10,
+    "max_parallel": 1,
     "auto_repair": true,
     "auto_close_idm": true
   },
@@ -32,7 +33,7 @@
       "site_id": 20260166,
       "update_time": "23:30",
       "downloaded_start": 1,
-      "downloaded_end": 5,
+      "downloaded_end": 6,
       "site_latest": 6
     },
     "穹庐下的魔女": {
@@ -41,6 +42,13 @@
       "downloaded_start": 1,
       "downloaded_end": 7,
       "site_latest": 7
+    },
+    "幼女战记 第二季": {
+      "downloaded_start": 0,
+      "downloaded_end": 5,
+      "site_latest": 5,
+      "site_id": 20210240,
+      "update_time": "21:30"
     }
   }
 }

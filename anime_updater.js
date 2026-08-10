@@ -6,6 +6,7 @@ const { chromium } = require('C:/Users/15269/.cache/codex-runtimes/codex-primary
 const WORK = __dirname;
 const EDGE = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
 const IDM = 'F:\\IDM\\Internet Download Manager\\IDMan.exe';
+const FETCH_TIMEOUT_MS = 30 * 1000;
 function getCsvPath(workDir = WORK, env = process.env) {
   return env.AGE_CSV || path.join(workDir, 'local', '待下载清单.csv');
 }
@@ -13,7 +14,12 @@ function getFfmpegPath() {
   const bundled = path.join(WORK, 'tools', 'ffmpeg', 'ffmpeg.exe');
   return process.env.AGE_FFMPEG || (fs.existsSync(bundled) ? bundled : 'ffmpeg.exe');
 }
+function getAria2Path() {
+  const bundled = path.join(WORK, 'tools', 'aria2', 'aria2c.exe');
+  return process.env.AGE_ARIA2 || (fs.existsSync(bundled) ? bundled : 'aria2c.exe');
+}
 const FFMPEG = getFfmpegPath();
+const ARIA2 = getAria2Path();
 const BASE = 'https://www.agedm.io';
 const DLOAD = process.env.AGE_DLOAD || 'D:\\idm下载';
 const CONTENT = process.env.AGE_CONTENT || path.join(WORK, 'content.json');
@@ -32,12 +38,33 @@ const BAD_NAME_RE = /[\/\\:*?"<>|]/;
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-async function fetchText(url, referer) {
+async function fetchText(url, referer, deps = {}) {
   const headers = { 'User-Agent': UA, 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8' };
   if (referer) headers.Referer = referer;
-  const r = await fetch(url, { headers });
-  if (!r.ok) throw new Error(`HTTP ${r.status} ${url}`);
-  return r.text();
+  const fetchImpl = deps.fetchImpl || fetch;
+  const timeoutMs = deps.timeoutMs || FETCH_TIMEOUT_MS;
+  const controller = new AbortController();
+  let timeoutReject;
+  const timeoutPromise = new Promise((_, reject) => { timeoutReject = reject; });
+  const timer = setTimeout(() => {
+    controller.abort();
+    timeoutReject(new Error(`请求超时（${timeoutMs}ms）: ${url}`));
+  }, timeoutMs);
+  try {
+    const r = await Promise.race([
+      fetchImpl(url, { headers, signal: controller.signal }),
+      timeoutPromise,
+    ]);
+    if (!r.ok) throw new Error(`HTTP ${r.status} ${url}`);
+    return r.text();
+  } catch (e) {
+    if (e.name === 'AbortError' || /超时/.test(e.message || '')) {
+      throw new Error(`请求超时（${timeoutMs}ms）: ${url}`);
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 function formatLogTime(date) {
@@ -215,6 +242,33 @@ function callFfmpeg(url, folder, filename, headers = {}) {
   }
 }
 
+function callAria2(url, folder, filename, headers = {}, isM3u8 = false) {
+  const headerText = Object.entries(headers).map(([key, value]) => `${key}: ${value}`).join('\r\n');
+  const output = path.join(folder, filename);
+  const tempOutput = getFfmpegTempPath(output);
+  try { fs.rmSync(tempOutput, { force: true }); } catch (e) { /* 临时文件不存在 */ }
+  const args = ['-x', '16', '-s', '16', '-k', '1M', '-c', '--no-conf', '--auto-file-renaming=false'];
+  if (isM3u8) args.push('--hls-segment-threads=16');
+  if (headerText) {
+    for (const line of headerText.split('\r\n')) args.push('--header', line);
+  }
+  args.push('--dir', folder, '--out', path.basename(tempOutput), url);
+  const result = spawnSync(ARIA2, args, {
+    encoding: 'utf8',
+    windowsHide: true,
+    timeout: ATTEMPT_TIMEOUT_MS,
+    maxBuffer: 1024 * 1024,
+  });
+  const stderr = (result.stderr || result.error?.message || '').trim();
+  if (result.status !== 0) return { status: result.status, stderr };
+  try {
+    fs.renameSync(tempOutput, output);
+    return { status: 0, stderr };
+  } catch (e) {
+    return { status: 1, stderr: `完成文件改名失败: ${e.message}` };
+  }
+}
+
 async function waitForFile(filePath, minSize, stableMs, timeoutMs) {
   const start = Date.now();
   let lastSize = -1, stableSince = Date.now();
@@ -238,10 +292,9 @@ async function waitForFile(filePath, minSize, stableMs, timeoutMs) {
 
 async function downloadEpisode(anime, ep, folderDir, deps = {}) {
   const resolvePlayUrl = deps.getPlayUrl || getPlayUrl;
-  const startDownload = deps.callIdm || callIdm;
+  const startAria2 = deps.callAria2 || callAria2;
   const startFfmpeg = deps.callFfmpeg || callFfmpeg;
   const waitForDownload = deps.waitForFile || waitForFile;
-  const runMode = deps.runMode || (readTaskState() || {}).run_mode || 'interactive';
   const fname = resolveFileName(anime, ep);
   if (fname.error) throw new Error(fname.error);
   const filename = fname.name;
@@ -278,36 +331,54 @@ async function downloadEpisode(anime, ep, folderDir, deps = {}) {
       continue;
     }
     const isM3u8 = /\.m3u8(?:[?#]|$)/i.test(url);
-    const useFfmpeg = isM3u8 || runMode === 'password';
     const headers = {
       Referer: `${BASE}/play/${anime.site_id}/${src}/${ep}`,
       'User-Agent': UA,
     };
-    if (useFfmpeg) {
-      const reason = isM3u8 ? 'M3U8' : '后台模式';
-      progress(`  ${filename} 线路${src}: 交给 ffmpeg (${reason}) ${url.slice(0, 100)}...`);
-      const ffmpegResult = startFfmpeg(url, folderDir, attemptName, headers);
-      if (ffmpegResult && ffmpegResult.status !== undefined && ffmpegResult.status !== 0) {
-        const detail = ffmpegResult.stderr ? `: ${ffmpegResult.stderr.slice(0, 300)}` : '';
-        lastErr = new Error(`线路${src} ffmpeg 失败 exit=${ffmpegResult.status}${detail}`);
-        progress(`  ${filename} 线路${src}: ffmpeg 失败 exit=${ffmpegResult.status}${detail}`);
+    let engineOk = false;
+    let res = null;
+    for (const [engineName, launch] of [['aria2', startAria2], ['ffmpeg', startFfmpeg]]) {
+      progress(`  ${filename} 线路${src}: 交给 ${engineName} ${isM3u8 ? '(M3U8)' : '(MP4)'} ${url.slice(0, 100)}...`);
+      const engineResult = launch(url, folderDir, attemptName, headers, isM3u8);
+      if (engineResult && engineResult.status !== undefined && engineResult.status !== 0) {
+        const detail = engineResult.stderr ? `: ${engineResult.stderr.slice(0, 300)}` : '';
+        lastErr = new Error(`线路${src} ${engineName} 失败 exit=${engineResult.status}${detail}`);
+        progress(`  ${filename} 线路${src}: ${engineName} 失败 exit=${engineResult.status}${detail}`);
         try { fs.renameSync(attemptPath, attemptPath + '.failed'); } catch (e) { /* 没有文件则忽略 */ }
         continue;
       }
-    } else {
-      progress(`  ${filename} 线路${src}: 交给 IDM (MP4) ${url.slice(0, 100)}...`);
-      startDownload(url, folderDir, attemptName, headers);
+      res = await waitForDownload(attemptPath, MIN_SIZE, STABLE_MS, ATTEMPT_TIMEOUT_MS);
+      if (res.ok) {
+        engineOk = true;
+        break;
+      }
+      lastErr = new Error(`线路${src} ${engineName} 文件未完成 size=${res.size}`);
+      progress(`  ${filename} 线路${src}: ${engineName} 未完成 size=${res.size}`);
+      try { fs.renameSync(attemptPath, attemptPath + '.failed'); } catch (e) { /* 没有文件就不动 */ }
     }
-    const res = await waitForDownload(attemptPath, MIN_SIZE, STABLE_MS, ATTEMPT_TIMEOUT_MS);
-    if (res.ok) {
+    if (engineOk) {
       if (!isPrimary) fs.renameSync(attemptPath, finalPath);
       return { src, skipped: false, size: res.size };
     }
-    lastErr = new Error(`线路${src}文件未完成 size=${res.size}`);
-    progress(`  ${filename} 线路${src}: 未完成 size=${res.size}`);
-    try { fs.renameSync(attemptPath, attemptPath + '.failed'); } catch (e) { /* 没有文件就不动 */ }
   }
   throw lastErr || new Error('全部线路失败');
+}
+
+async function runPool(items, worker, poolSize) {
+  const size = Math.max(1, Math.min(parseInt(poolSize, 10) || 1, items.length || 1));
+  const results = new Array(items.length);
+  let next = 0;
+  async function runWorker() {
+    while (next < items.length) {
+      const index = next;
+      next += 1;
+      results[index] = await worker(items[index], index);
+    }
+  }
+  const workers = [];
+  for (let i = 0; i < size; i++) workers.push(runWorker());
+  await Promise.all(workers);
+  return results;
 }
 
 function renameFolder(oldPath, newPath) {
@@ -558,6 +629,172 @@ function syncTask(content) {
   return ok;
 }
 
+async function processOneAnime(title, info, content, options = {}) {
+  const deps = options.deps || {};
+  const dryRun = options.dryRun === true;
+  const defaults = options.defaults || content.defaults || {};
+  const homeTimes = options.homeTimes || {};
+  const rows = options.rows || [];
+  const processDownload = deps.downloadEpisode || downloadEpisode;
+  const resolveMaxEp = deps.getMaxEp || getMaxEp;
+  const maxPerRunRaw = parseInt(defaults.max_download, 10);
+  const maxPerRun = Number.isFinite(maxPerRunRaw) && maxPerRunRaw > 0 ? maxPerRunRaw : 0;
+  const autoRepair = defaults.auto_repair !== false;
+  const maxParallelRaw = parseInt(defaults.max_parallel, 10);
+  const maxParallel = Number.isFinite(maxParallelRaw) && maxParallelRaw >= 1 && maxParallelRaw <= 10 ? maxParallelRaw : 1;
+  let changed = false;
+
+  if (!info.site_id) {
+    const s = await searchSite(title);
+    if (!s) { blocked(`搜索不到站内条目: ${title}`); return { changed: false }; }
+    info.site_id = s.id;
+    changed = true;
+    progress(`${title}: 补 site_id=${s.id}`);
+  }
+  if (!info.update_time) {
+    info.update_time = homeTimes[title] || null;
+    changed = true;
+    if (homeTimes[title]) progress(`${title}: 补 update_time=${homeTimes[title]}`);
+    else progress(`${title}: 本周放送列表未匹配到更新时间，记为 null`);
+  }
+  const legacyFolder = findFolderByTitle(title);
+  if (info.downloaded_start === undefined || info.downloaded_start === null) {
+    info.downloaded_start = (legacyFolder && legacyFolder.start !== undefined) ? legacyFolder.start : 0;
+    changed = true;
+  }
+  if (info.downloaded_end === undefined || info.downloaded_end === null) {
+    info.downloaded_end = (legacyFolder && legacyFolder.end !== undefined) ? legacyFolder.end : 0;
+    changed = true;
+  }
+
+  const anime = Object.assign({}, info, { title });
+  if (!anime.site_id) return { changed };
+  const start = (anime.downloaded_start !== undefined && anime.downloaded_start !== null) ? anime.downloaded_start : 0;
+  const end = (anime.downloaded_end !== undefined && anime.downloaded_end !== null) ? anime.downloaded_end : 0;
+
+  let folder = findFolder(anime);
+  if (!folder) {
+    const cur = resolveFolderName(anime, null, end);
+    if (cur.error) { blocked(`${title}: ${cur.error}`); return { changed }; }
+    if (dryRun) {
+      progress(`dry-run: 将新建文件夹 ${cur.name}`);
+      folder = { dir: path.join(DLOAD, cur.name), prefix: anime.folder_name ? '' : '0_', title, start, end, name: cur.name };
+    } else {
+      try {
+        fs.mkdirSync(path.join(DLOAD, cur.name), { recursive: true });
+        progress(`新建文件夹: ${cur.name}`);
+      } catch (e) {
+        blocked(`${title}: 无法创建文件夹 ${cur.name}: ${e.message}`);
+        return { changed };
+      }
+      folder = { dir: path.join(DLOAD, cur.name), prefix: anime.folder_name ? '' : '0_', title, start, end, name: cur.name };
+    }
+  }
+
+  if (!dryRun && anime.folder_name) {
+    const cur = resolveFolderName(anime, folder, end);
+    if (cur.error) { blocked(`${title}: ${cur.error}`); return { changed }; }
+    if (cur.name !== folder.name) {
+      const r = safeRenameFolder(folder.dir, path.join(DLOAD, cur.name));
+      if (!r.ok) { blocked(`${title}: 文件夹迁移失败 ${r.error}`); return { changed }; }
+      progress(`${title}: 文件夹迁移 ${folder.name} -> ${cur.name}`);
+      folder = Object.assign({}, folder, { name: cur.name, dir: path.join(DLOAD, cur.name) });
+    }
+  }
+
+  const fileCount = countEpisodeFiles(folder.dir, anime);
+  const repairEps = [];
+  if (fileCount >= 0 && fileCount < end) {
+    if (autoRepair) {
+      repairEps.push(...findMissingEps(folder.dir, anime, end));
+      progress(`${title}: 文件数 ${fileCount} < downloaded_end ${end}，自动补缺 ${repairEps.join(',')}`);
+    } else {
+      blocked(`${title}: 文件夹内集数文件数 ${fileCount} < downloaded_end ${end}，跳过`);
+      return { changed };
+    }
+  }
+
+  const maxEp = await resolveMaxEp(anime.site_id, 1);
+  if (info.site_latest !== maxEp) { info.site_latest = maxEp; changed = true; }
+  const range = planDownloadRange(maxEp, end, maxPerRun);
+  const missingSet = new Set(repairEps);
+  for (const ep of range.newEps) missingSet.add(ep);
+  const unavailable = [...missingSet].filter(ep => ep > maxEp);
+  for (const ep of unavailable) blocked(`${title}: 第${ep}集缺失但站内已无该集，无法补`);
+  const missing = [...missingSet].filter(ep => ep <= maxEp).sort((a, b) => a - b);
+  if (missing.length === 0) {
+    progress(`${title}: 无新集（downloaded_end=${end}，站内 ${maxEp}）`);
+    return { changed };
+  }
+  for (const ep of missing) rows.push({ title, ep, url: `${BASE}/play/${anime.site_id}/1/${ep}` });
+  progress(`${title}: 站内最新 ${maxEp}，本次下载 ${missing.join(',')}（downloaded_end=${end}${maxPerRun > 0 ? `，单次上限 ${maxPerRun}` : ''}${maxParallel > 1 ? `，并发 ${maxParallel}` : ''}）`);
+  if (dryRun) return { changed };
+
+  const results = await runPool(missing, async ep => {
+    try {
+      const fname = resolveFileName(anime, ep);
+      if (fname.error) throw new Error(fname.error);
+      const r = await processDownload(anime, ep, folder.dir);
+      progress(`${title} 第${ep}集: 完成${r.skipped ? '（已存在）' : `（线路${r.src}，${r.size} 字节）`}`);
+      return { ok: true, r };
+    } catch (e) {
+      blocked(`${title} 第${ep}集: 下载失败 ${e.message}`);
+      return { ok: false, error: e.message };
+    }
+  }, maxParallel);
+  const allOk = results.every(x => x && x.ok);
+  if (allOk && missing.length > 0) {
+    const newEnd = Math.max(...missing);
+    info.downloaded_end = newEnd;
+    changed = true;
+    const newRes = resolveFolderName(anime, folder, newEnd);
+    if (newRes.error) {
+      blocked(`${title}: ${newRes.error}`);
+    } else if (newRes.name !== folder.name) {
+      const r = safeRenameFolder(folder.dir, path.join(DLOAD, newRes.name));
+      if (!r.ok) { blocked(`${title}: 文件夹改名失败 ${r.error}`); }
+      else { progress(`${title}: 文件夹改名 ${folder.name} -> ${newRes.name}`); }
+    }
+  }
+  return { changed };
+}
+
+async function processAllAnime(content, deps = {}) {
+  const dryRun = deps.dryRun === true;
+  const rows = [];
+  let changed = false;
+  let failed = 0;
+  let homeTimes = {};
+  const reportBlocked = deps.blocked || blocked;
+  const reportProgress = deps.progress || progress;
+  const reportCsv = deps.writeCsv || writeCsv;
+  try {
+    homeTimes = deps.getHomeTimes ? await deps.getHomeTimes() : await getHomeUpdateTimes();
+  } catch (e) {
+    reportBlocked('首页更新列表获取失败: ' + e.message);
+  }
+  const processOne = deps.processOneAnime || processOneAnime;
+  for (const [title, info] of Object.entries(content.anime || {})) {
+    try {
+      const r = await processOne(title, info, content, {
+        dryRun,
+        defaults: content.defaults || {},
+        homeTimes,
+        rows,
+        deps,
+      });
+      if (r && r.changed) changed = true;
+    } catch (e) {
+      failed += 1;
+      reportBlocked(`${title}: ${e.message}`);
+    }
+  }
+  if (changed) fs.writeFileSync(CONTENT, JSON.stringify(content, null, 2) + '\n', 'utf8');
+  reportCsv(rows);
+  reportProgress(`待下载清单已写: ${CSV}（${rows.length} 行）`);
+  return { ok: true, changed, failed, rows };
+}
+
 async function main() {
   const dryRun = process.argv.includes('--dry-run');
   if (process.argv.includes('--install-task')) {
@@ -589,140 +826,10 @@ async function main() {
     blocked('计划任务同步失败: ' + e.message);
   }
 
-  const homeTimes = await getHomeUpdateTimes();
-  let changed = false;
-  for (const [title, info] of Object.entries(content.anime || {})) {
-    if (!info.site_id) {
-      const s = await searchSite(title);
-      if (!s) { blocked(`搜索不到站内条目: ${title}`); continue; }
-      info.site_id = s.id;
-      changed = true;
-      progress(`${title}: 补 site_id=${s.id}`);
-    }
-    if (!info.update_time) {
-      info.update_time = homeTimes[title] || null;
-      changed = true;
-      if (homeTimes[title]) progress(`${title}: 补 update_time=${homeTimes[title]}`);
-      else progress(`${title}: 本周放送列表未匹配到更新时间，记为 null`);
-    }
-    const legacyFolder = findFolderByTitle(title);
-    if (info.downloaded_start === undefined || info.downloaded_start === null) {
-      info.downloaded_start = (legacyFolder && legacyFolder.start !== undefined) ? legacyFolder.start : 0;
-      changed = true;
-    }
-    if (info.downloaded_end === undefined || info.downloaded_end === null) {
-      info.downloaded_end = (legacyFolder && legacyFolder.end !== undefined) ? legacyFolder.end : 0;
-      changed = true;
-    }
-  }
-  if (changed) fs.writeFileSync(CONTENT, JSON.stringify(content, null, 2) + '\n', 'utf8');
-
-  const rows = [];
-  const defaults = content.defaults || {};
-  const maxPerRunRaw = parseInt(defaults.max_download, 10);
-  const maxPerRun = Number.isFinite(maxPerRunRaw) && maxPerRunRaw > 0 ? maxPerRunRaw : 0;
-  const autoRepair = defaults.auto_repair !== false;
-  const autoCloseIdm = defaults.auto_close_idm === true;
-  for (const [title, info] of Object.entries(content.anime || {})) {
-    const anime = Object.assign({}, info, { title });
-    if (!anime.site_id) continue;
-    const start = (anime.downloaded_start !== undefined && anime.downloaded_start !== null) ? anime.downloaded_start : 0;
-    const end = (anime.downloaded_end !== undefined && anime.downloaded_end !== null) ? anime.downloaded_end : 0;
-
-    let folder = findFolder(anime);
-    if (!folder) {
-      const cur = resolveFolderName(anime, null, end);
-      if (cur.error) { blocked(`${title}: ${cur.error}`); continue; }
-      if (dryRun) {
-        progress(`dry-run: 将新建文件夹 ${cur.name}`);
-        folder = { dir: path.join(DLOAD, cur.name), prefix: anime.folder_name ? '' : '0_', title, start, end, name: cur.name };
-      } else {
-        try {
-          fs.mkdirSync(path.join(DLOAD, cur.name), { recursive: true });
-          progress(`新建文件夹: ${cur.name}`);
-        } catch (e) {
-          blocked(`${title}: 无法创建文件夹 ${cur.name}: ${e.message}`);
-          continue;
-        }
-        folder = { dir: path.join(DLOAD, cur.name), prefix: anime.folder_name ? '' : '0_', title, start, end, name: cur.name };
-      }
-    }
-
-    if (!dryRun && anime.folder_name) {
-      const cur = resolveFolderName(anime, folder, end);
-      if (cur.error) { blocked(`${title}: ${cur.error}`); continue; }
-      if (cur.name !== folder.name) {
-        const r = safeRenameFolder(folder.dir, path.join(DLOAD, cur.name));
-        if (!r.ok) { blocked(`${title}: 文件夹迁移失败 ${r.error}`); continue; }
-        progress(`${title}: 文件夹迁移 ${folder.name} -> ${cur.name}`);
-        folder = Object.assign({}, folder, { name: cur.name, dir: path.join(DLOAD, cur.name) });
-      }
-    }
-
-    const fileCount = countEpisodeFiles(folder.dir, anime);
-    const repairEps = [];
-    if (fileCount >= 0 && fileCount < end) {
-      if (autoRepair) {
-        repairEps.push(...findMissingEps(folder.dir, anime, end));
-        progress(`${title}: 文件数 ${fileCount} < downloaded_end ${end}，自动补缺 ${repairEps.join(',')}`);
-      } else {
-        blocked(`${title}: 文件夹内集数文件数 ${fileCount} < downloaded_end ${end}，跳过`);
-        continue;
-      }
-    }
-
-    const maxEp = await getMaxEp(anime.site_id, 1);
-    if (info.site_latest !== maxEp) { info.site_latest = maxEp; changed = true; }
-    const range = planDownloadRange(maxEp, end, maxPerRun);
-    const missingSet = new Set(repairEps);
-    for (const ep of range.newEps) missingSet.add(ep);
-    const unavailable = [...missingSet].filter(ep => ep > maxEp);
-    for (const ep of unavailable) blocked(`${title}: 第${ep}集缺失但站内已无该集，无法补`);
-    const missing = [...missingSet].filter(ep => ep <= maxEp).sort((a, b) => a - b);
-    if (missing.length === 0) {
-      progress(`${title}: 无新集（downloaded_end=${end}，站内 ${maxEp}）`);
-      continue;
-    }
-    for (const ep of missing) rows.push({ title, ep, url: `${BASE}/play/${anime.site_id}/1/${ep}` });
-    progress(`${title}: 站内最新 ${maxEp}，本次下载 ${missing.join(',')}（downloaded_end=${end}${maxPerRun > 0 ? `，单次上限 ${maxPerRun}` : ''}）`);
-    if (dryRun) continue;
-
-    await ensureIdmMinimized();
-    let allOk = true;
-    for (const ep of missing) {
-      const fname = resolveFileName(anime, ep);
-      if (fname.error) { allOk = false; blocked(`${title} 第${ep}集: ${fname.error}`); break; }
-      try {
-        const r = await downloadEpisode(anime, ep, folder.dir);
-        progress(`${title} 第${ep}集: 完成${r.skipped ? '（已存在）' : `（线路${r.src}，${r.size} 字节）`}`);
-      } catch (e) {
-        allOk = false;
-        blocked(`${title} 第${ep}集: 下载失败 ${e.message}`);
-      }
-    }
-    if (allOk && missing.length > 0) {
-      const newEnd = Math.max(...missing);
-      info.downloaded_end = newEnd;
-      changed = true;
-      const newRes = resolveFolderName(anime, folder, newEnd);
-      if (newRes.error) {
-        blocked(`${title}: ${newRes.error}`);
-      } else if (newRes.name !== folder.name) {
-        const r = safeRenameFolder(folder.dir, path.join(DLOAD, newRes.name));
-        if (!r.ok) { blocked(`${title}: 文件夹改名失败 ${r.error}`); }
-        else { progress(`${title}: 文件夹改名 ${folder.name} -> ${newRes.name}`); }
-      }
-    }
-  }
-  if (changed) fs.writeFileSync(CONTENT, JSON.stringify(content, null, 2) + '\n', 'utf8');
-  writeCsv(rows);
-  if (!dryRun && autoCloseIdm && rows.length > 0) {
-    await closeIdmIfIdle(60000);
-  }
-  progress(`待下载清单已写: ${CSV}（${rows.length} 行）`);
+  await processAllAnime(content, { dryRun });
 }
 
-module.exports = { searchSite, parseFolderName, applyTemplate, validName, resolveFolderName, resolveFileName, renameFolder, safeRenameFolder, getEpisodeFileMatcher, countEpisodeFiles, findEpisodeFile, planDownloadRange, findMissingEps, getCsvPath, getFfmpegPath, getFfmpegTempPath, formatLogTime, isIdmRunning, ensureIdmMinimized, idmHasActivity, closeIdmIfIdle, blocked, progress, getMaxEp, getPlayUrl, callIdm, callFfmpeg, waitForFile, downloadEpisode, findFolder, findFolderByTitle, normalizeTime, syncTask, readTaskState, writeCsv };
+module.exports = { searchSite, parseFolderName, applyTemplate, validName, resolveFolderName, resolveFileName, renameFolder, safeRenameFolder, getEpisodeFileMatcher, countEpisodeFiles, findEpisodeFile, planDownloadRange, findMissingEps, getCsvPath, getFfmpegPath, getAria2Path, getFfmpegTempPath, formatLogTime, isIdmRunning, ensureIdmMinimized, idmHasActivity, closeIdmIfIdle, blocked, progress, getMaxEp, getPlayUrl, callIdm, callFfmpeg, callAria2, fetchText, runPool, processOneAnime, processAllAnime, waitForFile, downloadEpisode, findFolder, findFolderByTitle, normalizeTime, syncTask, readTaskState, writeCsv };
 
 if (require.main === module) {
   main().catch(e => {
