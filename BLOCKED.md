@@ -2,6 +2,12 @@
 
 无
 
+## 番仓 AniVault 0.2.0 待裁决/范围外（2026-08-10）
+- content.json 在任务 0 时已有未提交改动（面板保存产生的 folder_name/file_name 空值为 null）：不覆盖、不提交，留待用户裁决。
+- 单部番启停开关、多站适配、安装包：留后续件。
+- anime_updater.js 的 playwright-core 绝对路径依赖：本件不改，打包时处理。
+- pnpm exec electron 在本机不可用（系统 node/pnpm 不在 PATH），一律用 pnpm run scripts + 自带 node PATH。
+
 ## 番仓 AniVault Demo 范围外（2026-08-10）
 - 单部番启停开关需要改 anime_updater.js，Demo 不做，留待后续件裁决。
 - 站点选择、多站适配、下载按钮、安装包打包，留待后续件。

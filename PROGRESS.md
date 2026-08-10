@@ -1,5 +1,10 @@
 # PROGRESS
 
+## 番仓 AniVault 0.2.0 开工回执（2026-08-10）
+- 理解的目标：Demo 变可用的软件——面板触发 dry-run/下载、实时日志、待下载清单、打开下载目录、可停止；旧脚本一行不改。
+- 顺序：任务0核对 → runner TDD（先红后绿）→ csv TDD → IPC/界面 → smoke/selftest + 假脚本端到端 → 文档版本同步 → 提交。
+- 最大风险：子进程与锁在 Electron/Node 双环境的行为差异；真实 dry-run 会联网并写 content.json/PROGRESS，只留人工演示。
+
 ## 番仓 AniVault Demo 开工回执（2026-08-10）
 - 理解的目标：在 D:\project_codex\番仓 建独立 git 仓库，复制原项目为基线，交付可运行的 Electron 配置面板 Demo，能读/改/存 content.json，原仓库一行不动。
 - 顺序：核对基线 → 建库复制 → 设计文档 → TDD 校验器（先红后绿）→ Electron 面板 → smoke/selftest 自检 → 文档与版本同步 → 提交。

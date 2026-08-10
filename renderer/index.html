@@ -35,6 +35,38 @@
       </div>
       <div id="anime-list"></div>
     </section>
+    <section id="run">
+      <h2>运行控制</h2>
+      <div class="run-buttons">
+        <button id="run-dry" class="primary">Dry-run 检查更新</button>
+        <button id="run-full" class="primary">立即下载</button>
+        <button id="stop-run">停止</button>
+        <button id="open-download">打开下载目录</button>
+      </div>
+      <div id="run-status" class="run-status">空闲</div>
+      <div class="run-columns">
+        <div>
+          <h3>运行日志</h3>
+          <div id="log-area" class="log"></div>
+        </div>
+        <div>
+          <div class="csv-head">
+            <h3>待下载清单</h3>
+            <button id="csv-refresh">刷新</button>
+          </div>
+          <table id="csv-table">
+            <thead>
+              <tr><th>动漫</th><th>集数</th><th>播放页URL</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <details id="env-info-box">
+        <summary>环境信息（只读）</summary>
+        <pre id="env-info"></pre>
+      </details>
+    </section>
   </main>
   <footer>
     <button id="save" class="primary">保存配置</button>

@@ -1,6 +1,13 @@
 'use strict';
 
-const state = { config: null };
+const state = {
+  config: null,
+  running: false,
+  pid: null,
+  lastExit: null,
+  logRun: [],
+  logProgress: [],
+};
 
 function $(id) { return document.getElementById(id); }
 
@@ -82,7 +89,7 @@ function collectConfig() {
   };
   for (const card of document.querySelectorAll('.anime-card')) {
     const title = card.querySelector('.f-title').value.trim();
-    cfg.anime[title] = {
+    const raw = {
       site_id: numberOrNull(card.querySelector('.f-site_id').value),
       update_time: strOrNull(card.querySelector('.f-update_time').value),
       downloaded_start: numberOrNull(card.querySelector('.f-downloaded_start').value),
@@ -91,6 +98,12 @@ function collectConfig() {
       folder_name: strOrNull(card.querySelector('.f-folder_name').value),
       file_name: strOrNull(card.querySelector('.f-file_name').value),
     };
+    const item = {};
+    for (const key of Object.keys(raw)) {
+      const v = raw[key];
+      if (v !== null && v !== '') item[key] = v;
+    }
+    cfg.anime[title] = item;
   }
   return cfg;
 }
@@ -135,6 +148,8 @@ async function load() {
   render();
   $('save-msg').textContent = '已载入 content.json';
   $('status').textContent = '已连接';
+  loadEnv();
+  refreshCsv();
 }
 
 async function save() {
@@ -159,10 +174,129 @@ async function save() {
   }
 }
 
+function renderRun() {
+  const el = $('run-status');
+  if (state.running) {
+    el.textContent = '运行中（pid ' + state.pid + '）';
+    el.className = 'run-status running';
+  } else if (state.lastExit && state.lastExit.code !== null && state.lastExit.code !== undefined) {
+    el.textContent = '已退出 code=' + state.lastExit.code;
+    el.className = 'run-status';
+  } else if (state.lastExit && state.lastExit.signal) {
+    el.textContent = '已停止 signal=' + state.lastExit.signal;
+    el.className = 'run-status';
+  } else {
+    el.textContent = '空闲';
+    el.className = 'run-status';
+  }
+  $('run-dry').disabled = state.running;
+  $('run-full').disabled = state.running;
+  $('stop-run').disabled = !state.running;
+}
+
+function renderLog() {
+  const area = $('log-area');
+  const html = [];
+  for (const l of state.logRun) html.push(escapeHtml(l));
+  if (state.logRun.length && state.logProgress.length) html.push('— PROGRESS 末尾 —');
+  for (const l of state.logProgress) html.push(escapeHtml(l));
+  area.textContent = html.length ? html.join('\n') : '暂无日志';
+  area.scrollTop = area.scrollHeight;
+}
+
+async function poll() {
+  try {
+    const [st, log] = await Promise.all([
+      window.anivault.runStatus(),
+      window.anivault.logTail(200),
+    ]);
+    const wasRunning = state.running;
+    state.running = st.running;
+    state.pid = st.pid;
+    state.lastExit = st.lastExit;
+    state.logRun = log.run || [];
+    state.logProgress = log.progress || [];
+    renderRun();
+    renderLog();
+    if (wasRunning && !st.running) refreshCsv();
+  } catch (e) {
+    /* 轮询失败忽略 */
+  }
+}
+
+async function refreshCsv() {
+  const r = await window.anivault.csvRead();
+  const tbody = $('csv-table').querySelector('tbody');
+  tbody.innerHTML = '';
+  if (!r.ok) {
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = 3;
+    td.textContent = '读取失败: ' + r.error;
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+    return;
+  }
+  for (const row of r.rows) {
+    const tr = document.createElement('tr');
+    for (const v of [row.title, String(row.ep), row.url]) {
+      const td = document.createElement('td');
+      td.textContent = v;
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  }
+  if (!r.rows.length) {
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = 3;
+    td.textContent = '暂无待下载项';
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+  }
+}
+
+async function loadEnv() {
+  const info = await window.anivault.envInfo();
+  $('env-info').textContent = [
+    '下载目录: ' + info.downloadDir,
+    '脚本: ' + info.script,
+    '配置: ' + info.content,
+    '日志: ' + info.progress,
+    '清单: ' + info.csv,
+    '锁: ' + info.lock,
+    '运行时: ' + info.node,
+    'Electron: ' + info.electron + ' / Node: ' + info.nodeVersion,
+  ].join('\n');
+}
+
+async function startRun(mode) {
+  const r = await window.anivault.runStart(mode);
+  if (!r.ok) {
+    if (r.errors) {
+      $('run-status').textContent = '配置校验未通过，未启动: ' + Object.values(r.errors).join('；');
+    } else if (r.reason === 'locked') {
+      $('run-status').textContent = '已有任务在运行（锁被占用），本次未启动';
+    } else {
+      $('run-status').textContent = r.error || '启动失败';
+    }
+  }
+  poll();
+}
+
 $('add-anime').addEventListener('click', () => {
   $('anime-list').appendChild(createCard('', {}));
 });
 $('save').addEventListener('click', save);
 $('reload').addEventListener('click', load);
+$('run-dry').addEventListener('click', () => startRun('dry'));
+$('run-full').addEventListener('click', () => startRun('full'));
+$('stop-run').addEventListener('click', async () => {
+  await window.anivault.runStop();
+  poll();
+});
+$('open-download').addEventListener('click', () => window.anivault.openDownloadDir());
+$('csv-refresh').addEventListener('click', refreshCsv);
 
+setInterval(poll, 1000);
 load();
