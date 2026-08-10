@@ -145,7 +145,21 @@ label.check {
   margin-left: 10px;
 }
 
-.fields {
+.arrow {
+  width: 28px;
+  flex: 0 0 28px;
+  transition: transform 0.15s;
+}
+
+.anime-card.open .arrow {
+  transform: rotate(90deg);
+}
+
+.anime-card .fields {
+  display: none;
+}
+
+.anime-card.open .fields {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
@@ -198,6 +212,12 @@ button:hover:not(:disabled) {
 .run-status.running {
   color: #b3261e;
   font-weight: 600;
+}
+
+.episode-status {
+  font-size: 12px;
+  color: #334e68;
+  margin-bottom: 8px;
 }
 
 .run-columns {

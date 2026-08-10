@@ -7,6 +7,7 @@ const state = {
   lastExit: null,
   logProgress: [],
   logPinned: true,
+  episodes: [],
 };
 
 function $(id) { return document.getElementById(id); }
@@ -27,11 +28,12 @@ function strOrNull(v) {
   return v === '' ? null : v;
 }
 
-function createCard(title, item) {
+function createCard(title, item, expanded = false) {
   const card = document.createElement('div');
-  card.className = 'anime-card';
+  card.className = 'anime-card' + (expanded ? ' open' : '');
   card.innerHTML = `
     <div class="card-head">
+      <button class="arrow" title="展开/收起">&gt;</button>
       <label>片名
         <input class="f-title" value="${escapeHtml(title)}">
       </label>
@@ -62,6 +64,7 @@ function createCard(title, item) {
     </div>
     <div class="card-errors errors"></div>`;
   card.querySelector('.del').addEventListener('click', () => card.remove());
+  card.querySelector('.arrow').addEventListener('click', () => card.classList.toggle('open'));
   return card;
 }
 
@@ -200,6 +203,19 @@ function renderRun() {
   $('stop-run').disabled = !state.running;
 }
 
+function renderEpisodes() {
+  const el = $('episode-status');
+  if (!state.episodes || !state.episodes.length) {
+    el.textContent = '';
+    return;
+  }
+  const parts = state.episodes.map(e => {
+    const label = e.status === 'done' ? '完成' : e.status === 'failed' ? '失败' : '下载中';
+    return `${escapeHtml(e.title)} 第${e.ep}集：${label}`;
+  });
+  el.textContent = parts.join('　');
+}
+
 function renderLog() {
   const area = $('log-area');
   const pinned = state.logPinned;
@@ -221,6 +237,7 @@ async function poll() {
     state.lastExit = st.lastExit;
     state.logProgress = log.progress || [];
     renderRun();
+    renderEpisodes();
     renderLog();
     if (wasRunning && !st.running) refreshCsv();
   } catch (e) {
@@ -289,7 +306,7 @@ async function startRun(mode) {
 }
 
 $('add-anime').addEventListener('click', () => {
-  $('anime-list').appendChild(createCard('', {}));
+  $('anime-list').appendChild(createCard('', {}, true));
 });
 $('save').addEventListener('click', save);
 $('reload').addEventListener('click', load);

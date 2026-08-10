@@ -540,6 +540,17 @@ function computeNewEnd(end, missing, results) {
   return highest;
 }
 
+function filterRowsByResults(rows, title, missing, results, dryRun) {
+  if (dryRun) return rows;
+  for (let i = missing.length - 1; i >= 0; i--) {
+    if (results[i] && results[i].ok) {
+      const idx = rows.findIndex(r => r.title === title && r.ep === missing[i]);
+      if (idx >= 0) rows.splice(idx, 1);
+    }
+  }
+  return rows;
+}
+
 function isIdmRunning() {
   const r = spawnSync('tasklist.exe', ['/FI', 'IMAGENAME eq IDMan.exe', '/NH'], { encoding: 'utf8', windowsHide: true });
   return r.status === 0 && /IDMan\.exe/i.test(r.stdout || '');
@@ -782,17 +793,22 @@ async function processOneAnime(title, info, content, options = {}) {
 
   if (engine === 'idm' && runMode === 'interactive') await ensureIdmMinimized();
   const results = await runPool(missing, async ep => {
+    const emitStatus = status => console.log('EP_STATUS\t' + JSON.stringify(status));
+    emitStatus({ title, ep, status: 'downloading' });
     try {
       const fname = resolveFileName(anime, ep);
       if (fname.error) throw new Error(fname.error);
       const r = await processDownload(anime, ep, folder.dir, { engine, runMode, attemptTimeoutMs });
       progress(`${title} 第${ep}集: 完成${r.skipped ? '（已存在）' : `（线路${r.src}，${r.size} 字节）`}`);
+      emitStatus({ title, ep, status: 'done', skipped: r.skipped === true });
       return { ok: true, r };
     } catch (e) {
       blocked(`${title} 第${ep}集: 下载失败 ${e.message}`);
+      emitStatus({ title, ep, status: 'failed' });
       return { ok: false, error: e.message };
     }
   }, maxParallel);
+  filterRowsByResults(rows, title, missing, results, dryRun);
   const failedCount = results.filter(x => !x || !x.ok).length;
   const idmUsed = results.some(x => x && x.ok && x.r && x.r.engine === 'idm');
   const newEnd = computeNewEnd(end, missing, results);
@@ -892,7 +908,7 @@ async function main() {
   await processAllAnime(content, { dryRun });
 }
 
-module.exports = { searchSite, parseFolderName, applyTemplate, validName, resolveFolderName, resolveFileName, renameFolder, safeRenameFolder, getEpisodeFileMatcher, countEpisodeFiles, findEpisodeFile, planDownloadRange, findMissingEps, resolveDownloadedStart, computeNewEnd, getBase, engineChain, getCsvPath, getFfmpegPath, getAria2Path, getFfmpegTempPath, formatLogTime, isIdmRunning, ensureIdmMinimized, idmHasActivity, closeIdmIfIdle, blocked, progress, getMaxEp, getPlayUrl, callIdm, callFfmpeg, callAria2, fetchText, runPool, processOneAnime, processAllAnime, waitForFile, downloadEpisode, findFolder, findFolderByTitle, normalizeTime, syncTask, readTaskState, writeCsv };
+module.exports = { searchSite, parseFolderName, applyTemplate, validName, resolveFolderName, resolveFileName, renameFolder, safeRenameFolder, getEpisodeFileMatcher, countEpisodeFiles, findEpisodeFile, planDownloadRange, findMissingEps, resolveDownloadedStart, computeNewEnd, filterRowsByResults, getBase, engineChain, getCsvPath, getFfmpegPath, getAria2Path, getFfmpegTempPath, formatLogTime, isIdmRunning, ensureIdmMinimized, idmHasActivity, closeIdmIfIdle, blocked, progress, getMaxEp, getPlayUrl, callIdm, callFfmpeg, callAria2, fetchText, runPool, processOneAnime, processAllAnime, waitForFile, downloadEpisode, findFolder, findFolderByTitle, normalizeTime, syncTask, readTaskState, writeCsv };
 
 if (require.main === module) {
   main().catch(e => {

@@ -17,6 +17,7 @@ const {
   getFfmpegTempPath,
   getEpisodeFileMatcher,
   computeNewEnd,
+  filterRowsByResults,
   resolveDownloadedStart,
   runPool,
   writeCsv,
@@ -109,6 +110,56 @@ function testComputeNewEndNeverBackwards() {
     { ok: true },
   ]);
   assert.equal(end, 5);
+}
+
+function testFilterRowsPartialKeepsFailed() {
+  const rows = [
+    { title: 'T', ep: 1, url: 'u1' },
+    { title: 'T', ep: 2, url: 'u2' },
+    { title: 'T', ep: 3, url: 'u3' },
+    { title: 'T', ep: 4, url: 'u4' },
+  ];
+  filterRowsByResults(rows, 'T', [1, 2, 3, 4], [
+    { ok: false },
+    { ok: false },
+    { ok: true },
+    { ok: true },
+  ], false);
+  assert.deepEqual(rows.map(r => r.ep), [1, 2]);
+}
+
+function testFilterRowsAllSuccessEmpty() {
+  const rows = [
+    { title: 'T', ep: 1, url: 'u1' },
+    { title: 'T', ep: 2, url: 'u2' },
+  ];
+  filterRowsByResults(rows, 'T', [1, 2], [{ ok: true }, { ok: true }], false);
+  assert.equal(rows.length, 0);
+}
+
+function testFilterRowsDryRunKeepsAll() {
+  const rows = [
+    { title: 'T', ep: 1, url: 'u1' },
+    { title: 'T', ep: 2, url: 'u2' },
+    { title: 'T', ep: 3, url: 'u3' },
+    { title: 'T', ep: 4, url: 'u4' },
+  ];
+  filterRowsByResults(rows, 'T', [1, 2, 3, 4], [
+    { ok: true },
+    { ok: true },
+    { ok: false },
+    { ok: false },
+  ], true);
+  assert.equal(rows.length, 4);
+}
+
+function testFilterRowsAllFailKeepsAll() {
+  const rows = [
+    { title: 'T', ep: 1, url: 'u1' },
+    { title: 'T', ep: 2, url: 'u2' },
+  ];
+  filterRowsByResults(rows, 'T', [1, 2], [{ ok: false }, { ok: false }], false);
+  assert.equal(rows.length, 2);
 }
 
 async function testDownloadEpisodePassesAttemptTimeout() {
@@ -485,6 +536,14 @@ Promise.resolve()
   .then(() => console.log('PASS 全部成功 end 取最高集'))
   .then(testComputeNewEndNeverBackwards)
   .then(() => console.log('PASS end 不倒退'))
+  .then(testFilterRowsPartialKeepsFailed)
+  .then(() => console.log('PASS 部分成功 rows 只剩失败集'))
+  .then(testFilterRowsAllSuccessEmpty)
+  .then(() => console.log('PASS 全部成功 rows 为空'))
+  .then(testFilterRowsDryRunKeepsAll)
+  .then(() => console.log('PASS dry-run rows 保留全部计划'))
+  .then(testFilterRowsAllFailKeepsAll)
+  .then(() => console.log('PASS 全部失败 rows 保留'))
   .then(testDownloadEpisodePassesAttemptTimeout)
   .then(() => console.log('PASS attemptTimeoutMs 传给 waitForFile'))
   .then(testDownloadEpisodeDefaultTimeoutFallback)

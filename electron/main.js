@@ -15,6 +15,8 @@ const RUN_LOG_CAP = 500;
 let runner = null;
 let runLog = [];
 let lastExit = null;
+let episodes = [];
+let mainWindow = null;
 
 function appRoot() {
   return app.getAppPath();
@@ -76,13 +78,33 @@ function pushRunLog(line) {
   if (runLog.length > RUN_LOG_CAP) runLog.splice(0, runLog.length - RUN_LOG_CAP);
 }
 
+function handleRunnerLine(line) {
+  if (typeof line !== 'string' || !line.startsWith('EP_STATUS\t')) return;
+  let data;
+  try {
+    data = JSON.parse(line.slice('EP_STATUS\t'.length));
+  } catch (e) {
+    return;
+  }
+  if (!data || typeof data.title !== 'string' || typeof data.ep !== 'number') return;
+  const entry = { title: data.title, ep: data.ep, status: data.status, skipped: data.skipped === true };
+  episodes = episodes.filter(e => !(e.title === entry.title && e.ep === entry.ep));
+  episodes.push(entry);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('run:episode', entry);
+  }
+}
+
 function getRunner() {
   if (!runner) {
     runner = createRunner({
       scriptPath: updaterScript(),
       lockPath: lockFile(),
       extraEnv: { AGE_RUN_MODE: 'interactive' },
-      onStdout: line => pushRunLog(line),
+      onStdout: line => {
+        pushRunLog(line);
+        handleRunnerLine(line);
+      },
       onStderr: line => pushRunLog(line),
       onExit: result => { lastExit = result; },
     });
@@ -103,6 +125,8 @@ function createWindow() {
     },
   });
   win.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
+  mainWindow = win;
+  win.on('closed', () => { mainWindow = null; });
   return win;
 }
 
@@ -185,6 +209,18 @@ async function runSelfTest() {
     }
     if (fs.existsSync(runLock)) throw new Error('假脚本退出后锁未清理');
 
+    const fakeStatus = path.join(tmpDir, 'fake-ep-status.js');
+    fs.writeFileSync(fakeStatus, "console.log('EP_STATUS\\t' + JSON.stringify({ title: 'Test Anime', ep: 2, status: 'downloading' }));\nconsole.log('EP_STATUS\\t' + JSON.stringify({ title: 'Test Anime', ep: 2, status: 'done', skipped: false }));\nsetTimeout(() => process.exit(0), 100);\n", 'utf8');
+    episodes = [];
+    const statusLock = path.join(tmpDir, 'run-status.lock');
+    const statusRunner = createRunner({ scriptPath: fakeStatus, lockPath: statusLock, onStdout: line => handleRunnerLine(line) });
+    const statusStarted = statusRunner.start();
+    if (!statusStarted.ok) throw new Error('状态假脚本启动失败: ' + JSON.stringify(statusStarted));
+    await waitForNoRunning(statusRunner, 5000);
+    if (episodes.length !== 1 || episodes[0].status !== 'done' || episodes[0].ep !== 2) {
+      throw new Error('EP_STATUS 未正确记录: ' + JSON.stringify(episodes));
+    }
+
     console.log('SELFTEST_OK');
     app.exit(0);
   } catch (e) {
@@ -219,6 +255,7 @@ function registerIpc() {
     const args = mode === 'dry' ? ['--dry-run'] : [];
     const r = getRunner().start(args);
     if (r.ok) {
+      episodes = [];
       pushRunLog('[面板] 已启动 ' + (mode === 'dry' ? 'dry-run' : '下载') + '，pid=' + r.pid);
     }
     return r;
@@ -229,6 +266,7 @@ function registerIpc() {
     running: getRunner().status().running,
     pid: getRunner().status().pid,
     lastExit,
+    episodes,
   }));
   ipcMain.handle('log:tail', (_e, n) => {
     const count = Math.min(Math.max(parseInt(n, 10) || 100, 1), 1000);
