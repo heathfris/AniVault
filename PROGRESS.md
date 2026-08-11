@@ -553,3 +553,10 @@ D:\project_codex\����\tools\aria2\aria2c.exe: unknown option -- hls-segm
 2026-08-11 10:06:30 幼女战记 第二季: 无新集（downloaded_end=5，站内 5）
 2026-08-11 10:06:31 擅长逃跑的殿下 第二季: 无新集（downloaded_end=4，站内 4）
 2026-08-11 10:06:31 待下载清单已写: D:\project_codex\番仓\local\待下载清单.csv（0 行）
+2026-08-11 18:00:02 启动 (实跑)
+2026-08-11 18:00:04 尼古喵喵: 无新集（downloaded_end=6，站内 6）
+2026-08-11 18:00:05 BanG Dream! YUME∞MITA: 无新集（downloaded_end=8，站内 8）
+2026-08-11 18:00:06 感谢对战 大小姐才不玩格斗游戏: 无新集（downloaded_end=5，站内 5）
+2026-08-11 18:00:07 再见，拉拉: 无新集（downloaded_end=6，站内 6）
+2026-08-11 18:00:08 穹庐下的魔女: 无新集（downloaded_end=7，站内 7）
+2026-08-11 18:00:08 待下载清单已写: D:\project_codex\番仓\local\待下载清单.csv（0 行）

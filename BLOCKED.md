@@ -2,7 +2,7 @@
 
 无
 
-## 番仓 AniVault 0.8.2 待裁决/范围外（2026-08-11）
+## 番仓 AniVault 0.9.0 待裁决/范围外（2026-08-11）
 - content.json 的现有 enabled 改动（用户停用两部番）按拍板随本件提交，未额外修改。
 - 纯 `pnpm run screenshot` 在本环境可能报 UnknownVizError（0.8.1 已记录），截图必要时用 `--in-process-gpu --disable-features=CalculateNativeWinOcclusion` + 独立 user-data-dir 执行同一 --screenshot 模式。
 - 单部番启停之外的多站、安装包、顺手重构仍留后续件。

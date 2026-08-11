@@ -6,6 +6,7 @@
   "main": "electron/main.js",
   "private": true,
   "scripts": {
+    "test": "node tests/run-tests.js",
     "start": "electron .",
     "smoke": "electron . --smoke",
     "selftest": "electron . --selftest",
