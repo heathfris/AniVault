@@ -58,7 +58,16 @@ function testLogTimeUsesShanghaiTimezone() {
 
 function testBundledFfmpegIsPreferred() {
   const expected = path.join(path.dirname(__dirname), 'tools', 'ffmpeg', 'ffmpeg.exe');
-  assert.equal(getFfmpegPath(), expected);
+  const existed = fs.existsSync(expected);
+  if (!existed) {
+    fs.mkdirSync(path.dirname(expected), { recursive: true });
+    fs.writeFileSync(expected, 'test placeholder');
+  }
+  try {
+    assert.equal(getFfmpegPath(), expected);
+  } finally {
+    if (!existed) fs.rmSync(path.dirname(expected), { recursive: true, force: true });
+  }
 }
 
 function testPartialFfmpegOutputIsNotAnEpisode() {
