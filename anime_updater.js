@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { spawn, spawnSync } = require('child_process');
 const { chromium } = require('C:/Users/15269/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright-core');
+const { appendRotated } = require('./src/logutil.js');
 
 const WORK = __dirname;
 const EDGE = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
@@ -20,15 +21,22 @@ function getAria2Path() {
 }
 const FFMPEG = getFfmpegPath();
 const ARIA2 = getAria2Path();
+const baseCache = new Map();
 function getBase(file = CONTENT) {
   if (process.env.AGE_BASE) return process.env.AGE_BASE;
+  if (baseCache.has(file)) return baseCache.get(file);
+  let value = 'https://www.agedm.io';
   try {
     const content = JSON.parse(fs.readFileSync(file, 'utf8'));
-    if (content.base_url && /^https?:\/\//i.test(content.base_url)) return content.base_url;
+    if (content.base_url && /^https?:\/\//i.test(content.base_url)) value = content.base_url;
   } catch (e) {
     /* 读取失败用默认值 */
   }
-  return 'https://www.agedm.io';
+  baseCache.set(file, value);
+  return value;
+}
+function resetBaseCache() {
+  baseCache.clear();
 }
 const DLOAD = process.env.AGE_DLOAD || 'D:\\idm下载';
 const CONTENT = process.env.AGE_CONTENT || path.join(WORK, 'content.json');
@@ -46,6 +54,31 @@ const BAD_RE = /\.(gif|png|jpe?g|css|js|svg|ico)(\?|$)/i;
 const BAD_NAME_RE = /[\/\\:*?"<>|]/;
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function createBrowserPool(createBrowser) {
+  let promise = null;
+  return {
+    getBrowser() {
+      if (!promise) {
+        promise = Promise.resolve().then(() => (
+          createBrowser
+            ? createBrowser()
+            : chromium.launch({ executablePath: EDGE, headless: true, args: ['--no-sandbox', '--disable-gpu'] })
+        ));
+      }
+      return promise;
+    },
+    async close() {
+      const pending = promise;
+      promise = null;
+      if (!pending) return;
+      const browser = await pending.catch(() => null);
+      if (browser && typeof browser.close === 'function') {
+        await browser.close().catch(() => {});
+      }
+    },
+  };
+}
 
 async function fetchText(url, referer, deps = {}) {
   const headers = { 'Connection': 'close', 'User-Agent': UA, 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8' };
@@ -103,13 +136,13 @@ function now() { return formatLogTime(new Date()); }
 function progress(msg) {
   const line = `${now()} ${msg}`;
   console.log(line);
-  fs.appendFileSync(PROGRESS, line + '\n', 'utf8');
+  appendRotated(PROGRESS, line);
 }
 
 function blocked(msg) {
   const line = `${now()} BLOCKED: ${msg}`;
   console.log(line);
-  fs.appendFileSync(BLOCKED, line + '\n', 'utf8');
+  appendRotated(BLOCKED, line);
 }
 
 function parseFolderName(name) {
@@ -183,11 +216,18 @@ async function getMaxEp(siteId, source) {
   return max;
 }
 
-async function getPlayUrl(siteId, ep, source) {
-  let browser;
-  try {
+async function getPlayUrl(siteId, ep, source, browserPool) {
+  let browser = null;
+  let ownBrowser = false;
+  if (browserPool) {
+    browser = await browserPool.getBrowser();
+  } else {
     browser = await chromium.launch({ executablePath: EDGE, headless: true, args: ['--no-sandbox', '--disable-gpu'] });
-    const context = await browser.newContext({ userAgent: UA });
+    ownBrowser = true;
+  }
+  let context = null;
+  try {
+    context = await browser.newContext({ userAgent: UA });
     const page = await context.newPage();
     let mediaUrl = null;
     page.on('request', req => {
@@ -220,7 +260,8 @@ async function getPlayUrl(siteId, ep, source) {
     }
     return (mediaUrl && MEDIA_RE.test(mediaUrl) && !BAD_RE.test(mediaUrl)) ? mediaUrl : null;
   } finally {
-    if (browser) await browser.close();
+    if (context) await context.close().catch(() => {});
+    if (ownBrowser && browser) await browser.close().catch(() => {});
   }
 }
 
@@ -346,11 +387,11 @@ async function downloadEpisode(anime, ep, folderDir, deps = {}) {
     } catch (e) { /* 无残留 */ }
     let url = null;
     try {
-      url = await resolvePlayUrl(anime.site_id, ep, src);
+      url = await resolvePlayUrl(anime.site_id, ep, src, deps.browserPool);
       if (!url && src === 1) {
         progress(`  线路1 取址失败，5秒后重试一次`);
         await sleep(5000);
-        url = await resolvePlayUrl(anime.site_id, ep, src);
+        url = await resolvePlayUrl(anime.site_id, ep, src, deps.browserPool);
       }
     } catch (e) {
       lastErr = e;
@@ -815,7 +856,7 @@ async function processOneAnime(title, info, content, options = {}) {
     try {
       const fname = resolveFileName(anime, ep);
       if (fname.error) throw new Error(fname.error);
-      const r = await processDownload(anime, ep, folder.dir, { engine, runMode, attemptTimeoutMs });
+      const r = await processDownload(anime, ep, folder.dir, { engine, runMode, attemptTimeoutMs, browserPool: deps.browserPool });
       progress(`${title} 第${ep}集: 完成${r.skipped ? '（已存在）' : `（线路${r.src}，${r.size} 字节）`}`);
       emitStatus({ title, ep, status: 'done', skipped: r.skipped === true });
       return { ok: true, r };
@@ -847,6 +888,7 @@ async function processOneAnime(title, info, content, options = {}) {
 }
 
 async function processAllAnime(content, deps = {}) {
+  const browserPool = createBrowserPool(deps.createBrowser);
   const dryRun = deps.dryRun === true;
   const rows = [];
   let changed = false;
@@ -857,38 +899,42 @@ async function processAllAnime(content, deps = {}) {
   const reportProgress = deps.progress || progress;
   const reportCsv = deps.writeCsv || writeCsv;
   try {
-    homeTimes = deps.getHomeTimes ? await deps.getHomeTimes() : await getHomeUpdateTimes();
-  } catch (e) {
-    reportBlocked('首页更新列表获取失败: ' + e.message);
-  }
-  const processOne = deps.processOneAnime || processOneAnime;
-  for (const [title, info] of Object.entries(content.anime || {})) {
     try {
-      const r = await processOne(title, info, content, {
-        dryRun,
-        defaults: content.defaults || {},
-        homeTimes,
-        rows,
-        deps,
-      });
-      if (r && r.changed) changed = true;
-      if (r && r.idmUsed) idmUsed = true;
+      homeTimes = deps.getHomeTimes ? await deps.getHomeTimes() : await getHomeUpdateTimes();
     } catch (e) {
-      failed += 1;
-      reportBlocked(`${title}: ${e.message}`);
+      reportBlocked('首页更新列表获取失败: ' + e.message);
     }
+    const processOne = deps.processOneAnime || processOneAnime;
+    for (const [title, info] of Object.entries(content.anime || {})) {
+      try {
+        const r = await processOne(title, info, content, {
+          dryRun,
+          defaults: content.defaults || {},
+          homeTimes,
+          rows,
+          deps: Object.assign({}, deps, { browserPool }),
+        });
+        if (r && r.changed) changed = true;
+        if (r && r.idmUsed) idmUsed = true;
+      } catch (e) {
+        failed += 1;
+        reportBlocked(`${title}: ${e.message}`);
+      }
+    }
+    if (changed) fs.writeFileSync(CONTENT, JSON.stringify(content, null, 2) + '\n', 'utf8');
+    if (rows.length > 0 || failed === 0) {
+      reportCsv(rows);
+      reportProgress(`待下载清单已写: ${CSV}（${rows.length} 行）`);
+    } else {
+      reportProgress('查询失败且本运行无待下载行，保留上次待下载清单');
+    }
+    if (!dryRun && (content.defaults || {}).auto_close_idm === true && idmUsed) {
+      await closeIdmIfIdle(60000);
+    }
+    return { ok: true, changed, failed, idmUsed, rows };
+  } finally {
+    await browserPool.close();
   }
-  if (changed) fs.writeFileSync(CONTENT, JSON.stringify(content, null, 2) + '\n', 'utf8');
-  if (rows.length > 0 || failed === 0) {
-    reportCsv(rows);
-    reportProgress(`待下载清单已写: ${CSV}（${rows.length} 行）`);
-  } else {
-    reportProgress('查询失败且本运行无待下载行，保留上次待下载清单');
-  }
-  if (!dryRun && (content.defaults || {}).auto_close_idm === true && idmUsed) {
-    await closeIdmIfIdle(60000);
-  }
-  return { ok: true, changed, failed, idmUsed, rows };
 }
 
 async function main() {
@@ -919,7 +965,7 @@ async function main() {
   await processAllAnime(content, { dryRun });
 }
 
-module.exports = { searchSite, parseFolderName, applyTemplate, validName, resolveFolderName, resolveFileName, renameFolder, safeRenameFolder, getEpisodeFileMatcher, countEpisodeFiles, findEpisodeFile, planDownloadRange, findMissingEps, resolveDownloadedStart, computeNewEnd, filterRowsByResults, withoutSkippedEps, getBase, engineChain, getCsvPath, getFfmpegPath, getAria2Path, getFfmpegTempPath, formatLogTime, isIdmRunning, ensureIdmMinimized, idmHasActivity, closeIdmIfIdle, blocked, progress, getMaxEp, getPlayUrl, callIdm, callFfmpeg, callAria2, fetchText, runPool, processOneAnime, processAllAnime, waitForFile, downloadEpisode, findFolder, findFolderByTitle, normalizeTime, syncTask, readTaskState, writeCsv };
+module.exports = { searchSite, parseFolderName, applyTemplate, validName, resolveFolderName, resolveFileName, renameFolder, safeRenameFolder, getEpisodeFileMatcher, countEpisodeFiles, findEpisodeFile, planDownloadRange, findMissingEps, resolveDownloadedStart, computeNewEnd, filterRowsByResults, withoutSkippedEps, getBase, resetBaseCache, engineChain, getCsvPath, getFfmpegPath, getAria2Path, getFfmpegTempPath, formatLogTime, isIdmRunning, ensureIdmMinimized, idmHasActivity, closeIdmIfIdle, blocked, progress, getMaxEp, getPlayUrl, callIdm, callFfmpeg, callAria2, fetchText, runPool, processOneAnime, processAllAnime, waitForFile, downloadEpisode, findFolder, findFolderByTitle, normalizeTime, syncTask, readTaskState, writeCsv };
 
 if (require.main === module) {
   main().catch(e => {

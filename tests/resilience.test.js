@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { fetchText, getBase, processAllAnime } = require('../anime_updater.js');
+const { fetchText, getBase, processAllAnime, resetBaseCache } = require('../anime_updater.js');
 
 const tests = [];
 function test(name, fn) {
@@ -215,6 +215,51 @@ test('getBase AGE_BASE 优先于 content.base_url', () => {
   process.env.AGE_BASE = 'https://env.example.com';
   try {
     assert.equal(getBase(file), 'https://env.example.com');
+  } finally {
+    delete process.env.AGE_BASE;
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('getBase 同路径缓存后改文件返回旧值', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'anivault-base-'));
+  const file = path.join(dir, 'content.json');
+  fs.writeFileSync(file, JSON.stringify({ base_url: 'https://one.example.com' }), 'utf8');
+  try {
+    assert.equal(getBase(file), 'https://one.example.com');
+    fs.writeFileSync(file, JSON.stringify({ base_url: 'https://two.example.com' }), 'utf8');
+    assert.equal(getBase(file), 'https://one.example.com');
+  } finally {
+    delete process.env.AGE_BASE;
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('getBase resetBaseCache 后重新读取', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'anivault-base-'));
+  const file = path.join(dir, 'content.json');
+  fs.writeFileSync(file, JSON.stringify({ base_url: 'https://one.example.com' }), 'utf8');
+  try {
+    assert.equal(getBase(file), 'https://one.example.com');
+    fs.writeFileSync(file, JSON.stringify({ base_url: 'https://two.example.com' }), 'utf8');
+    resetBaseCache();
+    assert.equal(getBase(file), 'https://two.example.com');
+  } finally {
+    delete process.env.AGE_BASE;
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('getBase 不同文件路径各自缓存', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'anivault-base-'));
+  const fileA = path.join(dir, 'a.json');
+  const fileB = path.join(dir, 'b.json');
+  fs.writeFileSync(fileA, JSON.stringify({ base_url: 'https://a.example.com' }), 'utf8');
+  fs.writeFileSync(fileB, JSON.stringify({ base_url: 'https://b.example.com' }), 'utf8');
+  try {
+    assert.equal(getBase(fileA), 'https://a.example.com');
+    assert.equal(getBase(fileB), 'https://b.example.com');
+    assert.equal(getBase(fileA), 'https://a.example.com');
   } finally {
     delete process.env.AGE_BASE;
     fs.rmSync(dir, { recursive: true, force: true });

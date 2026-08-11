@@ -18,6 +18,7 @@ const {
   getEpisodeFileMatcher,
   computeNewEnd,
   filterRowsByResults,
+  processAllAnime,
   processOneAnime,
   resolveDownloadedStart,
   withoutSkippedEps,
@@ -550,6 +551,75 @@ async function testNonInteractiveIdmFallsBackToAria2() {
   }
 }
 
+async function testProcessAllAnimeLaunchesBrowserOnce() {
+  const launches = [];
+  const closes = [];
+  const fakeBrowser = {
+    newContext: async () => ({ newPage: async () => ({}) }),
+    close: async () => { closes.push('close'); },
+  };
+  const fakeCreateBrowser = async () => {
+    launches.push('launch');
+    return fakeBrowser;
+  };
+  const fakeProcessOne = async (title, info, content, options) => {
+    const pool = options.deps && options.deps.browserPool;
+    if (!pool) throw new Error('browserPool 未传入 processOneAnime');
+    await Promise.all([pool.getBrowser(), pool.getBrowser()]);
+    return { changed: false };
+  };
+  await processAllAnime(
+    { defaults: {}, anime: { 'Test Anime': { site_id: 12345 } } },
+    {
+      getHomeTimes: async () => ({}),
+      processOneAnime: fakeProcessOne,
+      createBrowser: fakeCreateBrowser,
+      progress: () => {},
+      blocked: () => {},
+      writeCsv: () => {},
+      dryRun: true,
+    },
+  );
+  assert.equal(launches.length, 1);
+  assert.equal(closes.length, 1);
+}
+
+async function testConcurrentBrowserCallsUseSeparateContexts() {
+  const contexts = [];
+  const fakeBrowser = {
+    newContext: async () => {
+      const ctx = { id: contexts.length + 1 };
+      contexts.push(ctx);
+      return ctx;
+    },
+    close: async () => {},
+  };
+  const fakeCreateBrowser = async () => fakeBrowser;
+  const fakeProcessOne = async (title, info, content, options) => {
+    const pool = options.deps && options.deps.browserPool;
+    if (!pool) throw new Error('browserPool 未传入 processOneAnime');
+    await Promise.all([
+      pool.getBrowser().then(b => b.newContext()),
+      pool.getBrowser().then(b => b.newContext()),
+    ]);
+    return { changed: false };
+  };
+  await processAllAnime(
+    { defaults: {}, anime: { 'Test Anime': { site_id: 12345 } } },
+    {
+      getHomeTimes: async () => ({}),
+      processOneAnime: fakeProcessOne,
+      createBrowser: fakeCreateBrowser,
+      progress: () => {},
+      blocked: () => {},
+      writeCsv: () => {},
+      dryRun: true,
+    },
+  );
+  assert.equal(contexts.length, 2);
+  assert.notEqual(contexts[0], contexts[1]);
+}
+
 Promise.resolve()
   .then(testDefaultCsvPathUsesLocalFolder)
   .then(() => console.log('PASS default CSV path uses local folder'))
@@ -619,6 +689,10 @@ Promise.resolve()
   .then(() => console.log('PASS 引擎按链兜底'))
   .then(testNonInteractiveIdmFallsBackToAria2)
   .then(() => console.log('PASS 非交互模式选 idm 回退 aria2'))
+  .then(testProcessAllAnimeLaunchesBrowserOnce)
+  .then(() => console.log('PASS 整个运行只 launch 一次并关闭一次'))
+  .then(testConcurrentBrowserCallsUseSeparateContexts)
+  .then(() => console.log('PASS 并发取址各拿独立 context'))
   .finally(() => fs.rmSync(logDir, { recursive: true, force: true }))
   .catch(error => {
     console.error(error);

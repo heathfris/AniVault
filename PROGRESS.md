@@ -1,5 +1,17 @@
 # PROGRESS
 
+## 番仓 AniVault 0.9.0 完成记录（2026-08-11）
+- 浏览器复用：processAllAnime 内 createBrowserPool 懒启动共享浏览器，finally 必关；getPlayUrl 支持传入池并每次 newContext，不传时临时自启兼容。
+- 日志：src/logutil.js 新增 appendRotated（上限 2000 行，保留尾部+轮转标记）与 tailFileFast（读末尾 64KB）；progress/blocked 与 main log:tail 已切换。
+- getBase：按文件路径缓存，导出 resetBaseCache；AGE_BASE 优先不变。
+- 反向验证红→绿：浏览器只 launch 一次（0!==1 红→绿）、logutil 模块缺失红→5 PASS、getBase 缓存未实现 2 FAIL→18 PASS。
+- 全量回归：126 PASS（36+35+9+4+18+6+4+9+5）、skipped=0；smoke/selftest 退出 0；版本四面 0.9.0。
+
+## 番仓 AniVault 0.9.0 开工回执（2026-08-11）
+- 理解的目标：三项性能优化——无头 Edge 浏览器实例复用（一次运行只 launch 一次）、日志轮转+尾部读取（PROGRESS/BLOCKED 上限 2000 行，面板只读文件末尾）、getBase 站点地址缓存。
+- 顺序：任务0核对基线（116 PASS）→ 任务1 浏览器复用 TDD（红→绿）→ 任务2 logutil 轮转/tailFileFast TDD（红→绿）→ 任务3 getBase 缓存 TDD（红→绿）→ 任务4 全量回归/文档/版本 0.9.0/提交。
+- 最大风险：浏览器池改动影响并发取址与异常关闭；日志轮转不能丢最新记录；getBase 缓存不能破坏 AGE_BASE 优先级与现有测试。
+
 ## 番仓 AniVault 0.8.2 开工回执（2026-08-11）
 - 理解的目标：按用户 8 项要求重排界面——全局设置单列（左标签右控件）、控件统一、列表条目标准化（箭头/名称/开/关/编辑/删除/空状态）、≤1000px 响应式、字体留白统一，并新增 tests/ui-check.js 防回归。
 - 顺序：任务0核对（107 PASS；content.json 用户 enabled 改动随本件提交）→ ui-check TDD（先红 8 FAIL）→ 全局表单/控件统一 → 列表条目与空状态 → 响应式与字体留白 → smoke/ui-check 绿 → v0.8.2 截图 → selftest + 107+ui-check 回归 → 版本 0.8.2 四面同步 → 提交。

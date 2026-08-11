@@ -7,7 +7,8 @@ const os = require('node:os');
 const path = require('node:path');
 const { validateConfig } = require('../src/config/validator.js');
 const { createRunner } = require('../src/runner.js');
-const { readCsv, tailFile } = require('../src/csv.js');
+const { readCsv } = require('../src/csv.js');
+const { tailFileFast } = require('../src/logutil.js');
 const { syncSchedule, queryTask, TASK_NAME } = require('../src/schedule.js');
 const { countEpisodeFiles, findFolder } = require('../anime_updater.js');
 const { summarize } = require('../src/summary.js');
@@ -311,7 +312,7 @@ function registerIpc() {
     const count = Math.min(Math.max(parseInt(n, 10) || 100, 1), 1000);
     let progress = [];
     try {
-      progress = tailFile(progressFile(), count);
+      progress = tailFileFast(progressFile(), count);
     } catch (e) {
       progress = ['PROGRESS.md 不可读: ' + e.message];
     }
