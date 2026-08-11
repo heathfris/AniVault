@@ -13,6 +13,7 @@
     "screenshot": "electron . --screenshot"
   },
   "devDependencies": {
-    "electron": "^43.3.0"
+    "electron": "^43.3.0",
+    "playwright-core": "^1.55.0"
   }
 }

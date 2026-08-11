@@ -1,7 +1,14 @@
 const fs = require('fs');
 const path = require('path');
 const { spawn, spawnSync } = require('child_process');
-const { chromium } = require('C:/Users/15269/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright-core');
+let chromium;
+try {
+  ({ chromium } = require('playwright-core'));
+} catch (error) {
+  // Keep compatibility with the original Codex runtime when running locally
+  // before project dependencies have been installed.
+  ({ chromium } = require('C:/Users/15269/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright-core'));
+}
 const { appendRotated } = require('./src/logutil.js');
 
 const WORK = __dirname;
