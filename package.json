@@ -1,7 +1,7 @@
 {
   "name": "anivault",
   "productName": "番仓 AniVault",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "AGE 动漫自动追更下载器桌面面板（配置 + 运行控制，aria2 引擎）",
   "main": "electron/main.js",
   "private": true,

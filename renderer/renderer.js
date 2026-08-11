@@ -73,7 +73,6 @@ function createCard(title, item, expanded = false) {
 
 function render() {
   $('fetch_time').value = state.config.fetch_time || '';
-  $('auto_run_time').value = state.config.auto_run_time || '';
   $('max_download').value = state.config.defaults?.max_download ?? '';
   $('max_parallel').value = state.config.defaults?.max_parallel ?? 1;
   $('download_engine').value = state.config.defaults?.download_engine || 'aria2';
@@ -90,7 +89,6 @@ function render() {
 function collectConfig() {
   const cfg = {
     fetch_time: $('fetch_time').value.trim(),
-    auto_run_time: $('auto_run_time').value.trim(),
     defaults: {
       max_download: numberOrNull($('max_download').value),
       max_parallel: numberOrNull($('max_parallel').value),

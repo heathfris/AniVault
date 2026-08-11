@@ -38,12 +38,8 @@ function validateConfig(config) {
     return { ok: false, errors };
   }
 
-  if (typeof config.fetch_time !== 'string' || !TIME_RE.test(config.fetch_time.trim())) {
-    errors.fetch_time = '格式必须是 HH:MM（如 18:00）';
-  }
-
-  if (!empty(config.auto_run_time) && (typeof config.auto_run_time !== 'string' || !TIME_RE.test(config.auto_run_time.trim()))) {
-    errors.auto_run_time = '格式必须是 HH:MM 或留空';
+  if (!empty(config.fetch_time) && (typeof config.fetch_time !== 'string' || !TIME_RE.test(config.fetch_time.trim()))) {
+    errors.fetch_time = '格式必须是 HH:MM（如 18:00）或留空';
   }
 
   const defaults = config.defaults;

@@ -2,6 +2,11 @@
 
 无
 
+## 番仓 AniVault 0.6.1 待裁决/范围外（2026-08-11）
+- 时间入口合并：AniVaultAutoRun 统一由 fetch_time 驱动（填 HH:MM 创建/更新、留空删除），0.6.0 引入的第二个时间字段已全仓移除（含历史文档措辞改写，含义不变）。
+- anime_updater.js 的 main() 不再调用 syncTask（旧任务 AGEAnimeUpdater 属于原仓库且已禁用），函数保留不删。
+- 单部番启停之外的多站、安装包、顺手重构仍留后续件。
+
 ## 番仓 AniVault 0.6.0 待裁决/范围外（2026-08-11）
 - 计划任务只操作 AniVaultAutoRun；旧任务 AGEAnimeUpdater 保持现状（已定格，只读不碰）。
 - AniVaultAutoRun 按当前用户创建、仅登录时运行（schtasks 不带 /ru /rp）；自动运行由 scripts/auto-run.cmd 以 ELECTRON_RUN_AS_NODE=1 + AGE_RUN_MODE=password 启动 updater。

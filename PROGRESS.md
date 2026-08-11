@@ -1,7 +1,12 @@
 # PROGRESS
 
+## 番仓 AniVault 0.6.1 开工回执（2026-08-11）
+- 理解的目标：合并重复时间入口——计划任务 AniVaultAutoRun 统一由 fetch_time 驱动（留空关闭），删除 0.6.0 引入的第二个时间字段；updater 不再同步旧任务 AGEAnimeUpdater。
+- 顺序：任务0核对（95 PASS、任务现状）→ validator/renderer/content 合并 → main 改用 fetch_time → updater 移除 syncTask 调用 → 文档版本 0.6.1 四面同步 → 提交。
+- 最大风险：重复时间字段需全仓清零（含 0.6.0 历史文档措辞）；fetch_time 留空必须走 schedule 删除分支；旧任务只读不碰。
+
 ## 番仓 AniVault 0.6.0 开工回执（2026-08-11）
-- 理解的目标：找回“每天定时自动追更”——每部番 enabled 单独启停（停用整部跳过），全局 auto_run_time 保存后同步 Windows 计划任务 AniVaultAutoRun（留空删除），不碰旧任务 AGEAnimeUpdater。
+- 理解的目标：找回“每天定时自动追更”——每部番 enabled 单独启停（停用整部跳过），全局时间字段保存后同步 Windows 计划任务 AniVaultAutoRun（留空删除，时间入口于 0.6.1 统一为 fetch_time），不碰旧任务 AGEAnimeUpdater。
 - 顺序：任务0核对（84 PASS、AniVaultAutoRun 不存在）→ enabled 跳过 TDD → schedule 模块 TDD（假 schtasks）→ main/renderer 接线 → 真实验证（创建→查询→删除、auto-run.cmd --dry-run）→ 文档版本 0.6.0 四面同步 → 提交。
 - 最大风险：计划任务只操作 AniVaultAutoRun；auto-run.cmd 必须不依赖系统 node（用 Electron 自带运行时）；preload 不在白名单，任务状态经保存响应展示。
 
@@ -504,3 +509,6 @@ D:\project_codex\����\tools\aria2\aria2c.exe: unknown option -- hls-segm
 2026-08-11 09:12:05 幼女战记 第二季: 无新集（downloaded_end=5，站内 5）
 2026-08-11 09:12:06 擅长逃跑的殿下 第二季: 无新集（downloaded_end=4，站内 4）
 2026-08-11 09:12:06 待下载清单已写: D:\project_codex\番仓\local\待下载清单.csv（0 行）
+2026-08-11 10:02:44 启动 (dry-run)
+2026-08-11 10:02:46 尼古喵喵: 无新集（downloaded_end=6，站内 6）
+2026-08-11 10:02:47 BanG Dream! YUME∞MITA: 无新集（downloaded_end=8，站内 8）

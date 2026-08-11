@@ -243,7 +243,7 @@ function registerIpc() {
     try {
       atomicWriteJson(configFile(), cfg);
       const schedule = syncSchedule({
-        time: cfg.auto_run_time,
+        time: cfg.fetch_time,
         launcherPath: path.join(appRoot(), 'scripts', 'auto-run.cmd'),
       });
       return { ok: true, schedule };

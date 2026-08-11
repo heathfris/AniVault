@@ -60,6 +60,18 @@ test('空时间删除任务', () => {
   assert.ok(del.includes('/f'));
 });
 
+test('空白字符串按删除处理', () => {
+  const calls = [];
+  const st = fakeSchtasks((cmd, args) => {
+    calls.push(args);
+    return { status: 0, stdout: 'deleted', stderr: '' };
+  });
+  const r = syncSchedule({ time: '   ', launcherPath: LAUNCHER, schtasks: st });
+  assert.equal(r.ok, true);
+  assert.equal(r.action, 'deleted');
+  assert.ok(calls.some(a => a[0] === '/delete'));
+});
+
 test('创建失败返回 schtasks 输出与手动命令', () => {
   const st = fakeSchtasks((cmd, args) => {
     if (args[0] === '/query') return { status: 1, stdout: '', stderr: 'not found' };

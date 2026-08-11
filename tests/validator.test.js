@@ -234,20 +234,11 @@ test('enabled true/false 通过', () => {
   }
 });
 
-test('auto_run_time 非法被拒', () => {
+test('fetch_time 空值通过', () => {
   const c = valid();
-  c.auto_run_time = '25:00';
+  c.fetch_time = '';
   const r = validateConfig(c);
-  assert.equal(r.ok, false);
-  assert.ok(r.errors.auto_run_time);
-});
-
-test('auto_run_time 合法与空值通过', () => {
-  for (const v of ['', null, undefined, '18:00']) {
-    const c = valid();
-    c.auto_run_time = v;
-    assert.equal(validateConfig(c).ok, true);
-  }
+  assert.equal(r.ok, true);
 });
 
 let passed = 0;

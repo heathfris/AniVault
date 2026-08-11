@@ -904,12 +904,6 @@ async function main() {
     return;
   }
 
-  try {
-    syncTask(content);
-  } catch (e) {
-    blocked('计划任务同步失败: ' + e.message);
-  }
-
   await processAllAnime(content, { dryRun });
 }
 
