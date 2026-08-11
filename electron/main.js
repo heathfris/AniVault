@@ -153,6 +153,33 @@ function runSmoke() {
   win.webContents.once('did-fail-load', (_e, code, desc) => finish(false, '加载失败 code=' + code + ' ' + desc));
 }
 
+function runScreenshot(outputPath) {
+  const win = createWindow();
+  const fail = msg => {
+    console.error('SCREENSHOT_FAIL', msg);
+    app.exit(1);
+  };
+  const timer = setTimeout(() => fail('30 秒超时'), SMOKE_TIMEOUT_MS);
+  win.webContents.once('did-finish-load', async () => {
+    try {
+      await new Promise(r => setTimeout(r, 1000));
+      const image = await win.webContents.capturePage();
+      fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+      fs.writeFileSync(outputPath, image.toPNG());
+      clearTimeout(timer);
+      console.log('SCREENSHOT_OK ' + outputPath);
+      app.exit(0);
+    } catch (e) {
+      clearTimeout(timer);
+      fail(e.message || String(e));
+    }
+  });
+  win.webContents.once('did-fail-load', (_e, code, desc) => {
+    clearTimeout(timer);
+    fail('加载失败 code=' + code + ' ' + desc);
+  });
+}
+
 function waitForNoRunning(r, timeoutMs) {
   return new Promise((resolve, reject) => {
     const start = Date.now();
@@ -354,6 +381,17 @@ function registerIpc() {
 
 app.whenReady().then(() => {
   registerIpc();
+  const shotIdx = process.argv.indexOf('--screenshot');
+  if (shotIdx >= 0) {
+    const output = process.argv[shotIdx + 1];
+    if (!output) {
+      console.error('SCREENSHOT_FAIL', '缺少输出路径');
+      app.exit(1);
+      return;
+    }
+    runScreenshot(output);
+    return;
+  }
   if (process.argv.includes('--smoke')) { runSmoke(); return; }
   if (process.argv.includes('--selftest')) { runSelfTest(); return; }
   createWindow();

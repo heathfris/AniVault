@@ -38,9 +38,9 @@ function createCard(title, item, expanded = false) {
         <input class="f-title" value="${escapeHtml(title)}">
       </label>
       <label class="check enable-toggle">
-        <input class="f-enabled" type="checkbox" ${item.enabled === false ? '' : 'checked'}> 启用
+        <input class="f-enabled" type="checkbox" ${item.enabled === false ? '' : 'checked'}>
+        <span class="toggle-text">${item.enabled === false ? '关' : '开'}</span>
       </label>
-      <span class="enabled-label">是否启用: ${item.enabled === false ? '错' : '对'}</span>
       <button class="del">删除</button>
     </div>
     <div class="fields">
@@ -72,6 +72,11 @@ function createCard(title, item, expanded = false) {
     <div class="card-errors errors"></div>`;
   card.querySelector('.del').addEventListener('click', () => card.remove());
   card.querySelector('.arrow').addEventListener('click', () => card.classList.toggle('open'));
+  const enableInput = card.querySelector('.f-enabled');
+  enableInput.addEventListener('change', () => {
+    const text = card.querySelector('.toggle-text');
+    if (text) text.textContent = enableInput.checked ? '开' : '关';
+  });
   return card;
 }
 

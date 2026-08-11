@@ -2,6 +2,11 @@
 
 无
 
+## 番仓 AniVault 0.8.0 待裁决/范围外（2026-08-11）
+- 截图自检产物只存 local/screenshots/（已被 gitignore 忽略），不进入版本库；before.png 与 v0.8.0.png 用于人工视觉对比。
+- UI 改动不触碰任何测试文件与业务逻辑；元素 id（f-enabled/f-title/f-*、csv-table、log-area 等）保持不变。
+- 单部番启停之外的多站、安装包、顺手重构仍留后续件。
+
 ## 番仓 AniVault 0.7.0 待裁决/范围外（2026-08-11）
 - 任务 0 时 PROGRESS.md 已有 2026-08-11 10:06 dry-run 未提交行（用户操作产生），不覆盖、随本件提交。
 - preload 不在本件白名单：main 已加 csv:delete IPC，renderer 的行删除通过现有 read/save 通道写 skip_eps。

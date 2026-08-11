@@ -1,14 +1,15 @@
 {
   "name": "anivault",
   "productName": "番仓 AniVault",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "AGE 动漫自动追更下载器桌面面板（配置 + 运行控制，aria2 引擎）",
   "main": "electron/main.js",
   "private": true,
   "scripts": {
     "start": "electron .",
     "smoke": "electron . --smoke",
-    "selftest": "electron . --selftest"
+    "selftest": "electron . --selftest",
+    "screenshot": "electron . --screenshot"
   },
   "devDependencies": {
     "electron": "^43.3.0"

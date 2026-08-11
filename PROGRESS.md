@@ -1,5 +1,10 @@
 # PROGRESS
 
+## 番仓 AniVault 0.8.0 开工回执（2026-08-11）
+- 理解的目标：按职业桌面软件标准重排界面——启停控件“勾选框+开/关”、统一间距/对齐/控件高度/按钮层级/表格日志布局、新增截图自检模式。
+- 顺序：任务0核对（107 PASS）→ 写 docs/ui-design.md 设计 token → main 加 --screenshot → Before 截图（local/screenshots/before.png，101,317 字节）→ 实现排版 → After 截图（v0.8.0.png）→ smoke/selftest + 107 测试回归 → 版本 0.8.0 四面同步 → 提交。
+- 最大风险：只改布局/文案/控件结构，元素 id 与业务逻辑不动；任何尺寸不出现横向滚动条；截图只存 local/ 不入库。
+
 ## 番仓 AniVault 0.7.0 开工回执（2026-08-11）
 - 理解的目标：三件事——清单增强（已下载/总数列 + 行删除写 skip_eps）、站点地址面板可改（base_url）、启停只读显示“是否启用: 对/错”。
 - 顺序：任务0核对（95 PASS；PROGRESS 有 10:06 dry-run 未提交行，随本件提交）→ skip_eps TDD → summary TDD → base_url TDD → main/renderer 接线 → 文档版本 0.7.0 四面同步 → 提交。

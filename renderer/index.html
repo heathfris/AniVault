@@ -8,7 +8,8 @@
 <body>
   <header>
     <h1>番仓 AniVault</h1>
-    <span class="sub">AGE 动漫自动追更 · 配置面板 Demo</span>
+    <span class="sub">AGE 动漫自动追更 · 配置面板</span>
+    <span class="version-badge">v0.8.0</span>
     <span id="status" class="status"></span>
   </header>
   <main>
@@ -74,12 +75,14 @@
             <h3>待下载清单</h3>
             <button id="csv-refresh">刷新</button>
           </div>
-          <table id="csv-table">
-            <thead>
-              <tr><th>动漫</th><th>集数</th><th>播放页URL</th><th>已下载/总数</th><th>操作</th></tr>
-            </thead>
-            <tbody></tbody>
-          </table>
+          <div class="csv-scroll">
+            <table id="csv-table">
+              <thead>
+                <tr><th>动漫</th><th>集数</th><th>播放页URL</th><th>已下载/总数</th><th>操作</th></tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
         </div>
       </div>
       <details id="env-info-box">
