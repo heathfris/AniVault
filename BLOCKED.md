@@ -2,6 +2,10 @@
 
 无
 
+## 番仓 AniVault 0.8.1 待裁决/范围外（2026-08-11）
+- 任务 0 时 content.json 已有未提交改动（面板停用《幼女战记 第二季》与《擅长逃跑的殿下 第二季》，enabled=false）：本件白名单不含 content.json，不覆盖、不提交，留待用户裁决。
+- 本件只动 renderer/styles.css 的 .run-columns/.log/.csv-scroll 规则与版本/文档；其余文件一律不碰。
+
 ## 番仓 AniVault 0.8.0 待裁决/范围外（2026-08-11）
 - 截图自检产物只存 local/screenshots/（已被 gitignore 忽略），不进入版本库；before.png 与 v0.8.0.png 用于人工视觉对比。
 - UI 改动不触碰任何测试文件与业务逻辑；元素 id（f-enabled/f-title/f-*、csv-table、log-area 等）保持不变。

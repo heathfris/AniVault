@@ -307,7 +307,7 @@ button:disabled {
   grid-template-columns: 1fr 1fr;
   gap: var(--space-3);
   align-items: stretch;
-  min-height: 240px;
+  min-height: 320px;
 }
 
 .run-columns > div {
@@ -315,11 +315,13 @@ button:disabled {
   flex-direction: column;
   min-width: 0;
   min-height: 0;
+  height: 320px;
 }
 
 .log {
   flex: 1;
-  min-height: 240px;
+  height: 320px;
+  min-height: 0;
   overflow: auto;
   background: var(--color-log-bg);
   color: var(--color-log-text);
@@ -343,7 +345,8 @@ button:disabled {
 
 .csv-scroll {
   flex: 1;
-  min-height: 240px;
+  height: 320px;
+  min-height: 0;
   overflow: auto;
   border: 1px solid var(--color-border);
   border-radius: 4px;

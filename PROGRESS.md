@@ -1,5 +1,10 @@
 # PROGRESS
 
+## 番仓 AniVault 0.8.1 开工回执（2026-08-11）
+- 理解的目标：修复 0.8.0 日志滚动回归——.log/.csv-scroll 固定 320px 高、内容超出各自内部滚动、两栏等高。
+- 顺序：任务0核对（107 PASS；content.json 有用户面板改动，不碰不提交）→ CSS 修复（只动 .run-columns/.log/.csv-scroll）→ smoke → v0.8.1 截图 → selftest + 107 测试回归 → 版本 0.8.1 四面同步 → 提交。
+- 最大风险：只改这几条规则，其余 0.8.0 样式不动；页面不出现横向滚动条。
+
 ## 番仓 AniVault 0.8.0 开工回执（2026-08-11）
 - 理解的目标：按职业桌面软件标准重排界面——启停控件“勾选框+开/关”、统一间距/对齐/控件高度/按钮层级/表格日志布局、新增截图自检模式。
 - 顺序：任务0核对（107 PASS）→ 写 docs/ui-design.md 设计 token → main 加 --screenshot → Before 截图（local/screenshots/before.png，101,317 字节）→ 实现排版 → After 截图（v0.8.0.png）→ smoke/selftest + 107 测试回归 → 版本 0.8.0 四面同步 → 提交。
