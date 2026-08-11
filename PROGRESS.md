@@ -1,5 +1,10 @@
 # PROGRESS
 
+## 番仓 AniVault 0.7.0 开工回执（2026-08-11）
+- 理解的目标：三件事——清单增强（已下载/总数列 + 行删除写 skip_eps）、站点地址面板可改（base_url）、启停只读显示“是否启用: 对/错”。
+- 顺序：任务0核对（95 PASS；PROGRESS 有 10:06 dry-run 未提交行，随本件提交）→ skip_eps TDD → summary TDD → base_url TDD → main/renderer 接线 → 文档版本 0.7.0 四面同步 → 提交。
+- 最大风险：删除行必须真正写入 skip_eps 且绝不列回；base_url 优先级 AGE_BASE > content.base_url > 默认；preload 不在白名单，csv:delete IPC 已加但 renderer 删除走 read/save。
+
 ## 番仓 AniVault 0.6.1 开工回执（2026-08-11）
 - 理解的目标：合并重复时间入口——计划任务 AniVaultAutoRun 统一由 fetch_time 驱动（留空关闭），删除 0.6.0 引入的第二个时间字段；updater 不再同步旧任务 AGEAnimeUpdater。
 - 顺序：任务0核对（95 PASS、任务现状）→ validator/renderer/content 合并 → main 改用 fetch_time → updater 移除 syncTask 调用 → 文档版本 0.6.1 四面同步 → 提交。
@@ -512,3 +517,12 @@ D:\project_codex\����\tools\aria2\aria2c.exe: unknown option -- hls-segm
 2026-08-11 10:02:44 启动 (dry-run)
 2026-08-11 10:02:46 尼古喵喵: 无新集（downloaded_end=6，站内 6）
 2026-08-11 10:02:47 BanG Dream! YUME∞MITA: 无新集（downloaded_end=8，站内 8）
+2026-08-11 10:06:23 启动 (dry-run)
+2026-08-11 10:06:25 尼古喵喵: 无新集（downloaded_end=6，站内 6）
+2026-08-11 10:06:26 BanG Dream! YUME∞MITA: 无新集（downloaded_end=8，站内 8）
+2026-08-11 10:06:27 感谢对战 大小姐才不玩格斗游戏: 无新集（downloaded_end=5，站内 5）
+2026-08-11 10:06:28 再见，拉拉: 无新集（downloaded_end=6，站内 6）
+2026-08-11 10:06:29 穹庐下的魔女: 无新集（downloaded_end=7，站内 7）
+2026-08-11 10:06:30 幼女战记 第二季: 无新集（downloaded_end=5，站内 5）
+2026-08-11 10:06:31 擅长逃跑的殿下 第二季: 无新集（downloaded_end=4，站内 4）
+2026-08-11 10:06:31 待下载清单已写: D:\project_codex\番仓\local\待下载清单.csv（0 行）

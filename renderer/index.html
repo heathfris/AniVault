@@ -17,6 +17,9 @@
       <label>每日抓取时间
         <input id="fetch_time" type="text" placeholder="18:00，留空 = 关闭">
       </label>
+      <label>站点地址（留空 = 默认）
+        <input id="base_url" type="text" placeholder="https://www.agedm.io">
+      </label>
       <label>单次最多下载（0 = 不限）
         <input id="max_download" type="number" min="0" step="1">
       </label>
@@ -73,7 +76,7 @@
           </div>
           <table id="csv-table">
             <thead>
-              <tr><th>动漫</th><th>集数</th><th>播放页URL</th></tr>
+              <tr><th>动漫</th><th>集数</th><th>播放页URL</th><th>已下载/总数</th><th>操作</th></tr>
             </thead>
             <tbody></tbody>
           </table>

@@ -2,6 +2,12 @@
 
 无
 
+## 番仓 AniVault 0.7.0 待裁决/范围外（2026-08-11）
+- 任务 0 时 PROGRESS.md 已有 2026-08-11 10:06 dry-run 未提交行（用户操作产生），不覆盖、随本件提交。
+- preload 不在本件白名单：main 已加 csv:delete IPC，renderer 的行删除通过现有 read/save 通道写 skip_eps。
+- skip_eps 只影响单部单集；downloaded_end 不动；auto_repair 不补回跳过集。
+- 单部番启停之外的多站、安装包、顺手重构仍留后续件。
+
 ## 番仓 AniVault 0.6.1 待裁决/范围外（2026-08-11）
 - 时间入口合并：AniVaultAutoRun 统一由 fetch_time 驱动（填 HH:MM 创建/更新、留空删除），0.6.0 引入的第二个时间字段已全仓移除（含历史文档措辞改写，含义不变）。
 - anime_updater.js 的 main() 不再调用 syncTask（旧任务 AGEAnimeUpdater 属于原仓库且已禁用），函数保留不删。

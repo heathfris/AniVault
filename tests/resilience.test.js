@@ -1,6 +1,9 @@
 'use strict';
 
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
 const { fetchText, getBase, processAllAnime } = require('../anime_updater.js');
 
 const tests = [];
@@ -191,6 +194,30 @@ test('getBase 支持 AGE_BASE 覆盖', () => {
     assert.equal(getBase(), 'https://mirror.example.com');
   } finally {
     delete process.env.AGE_BASE;
+  }
+});
+
+test('getBase 读 content.base_url', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'anivault-base-'));
+  const file = path.join(dir, 'content.json');
+  fs.writeFileSync(file, JSON.stringify({ base_url: 'https://mirror.example.com' }), 'utf8');
+  try {
+    assert.equal(getBase(file), 'https://mirror.example.com');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('getBase AGE_BASE 优先于 content.base_url', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'anivault-base-'));
+  const file = path.join(dir, 'content.json');
+  fs.writeFileSync(file, JSON.stringify({ base_url: 'https://file.example.com' }), 'utf8');
+  process.env.AGE_BASE = 'https://env.example.com';
+  try {
+    assert.equal(getBase(file), 'https://env.example.com');
+  } finally {
+    delete process.env.AGE_BASE;
+    fs.rmSync(dir, { recursive: true, force: true });
   }
 });
 

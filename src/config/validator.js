@@ -42,6 +42,10 @@ function validateConfig(config) {
     errors.fetch_time = '格式必须是 HH:MM（如 18:00）或留空';
   }
 
+  if (!empty(config.base_url) && (typeof config.base_url !== 'string' || !/^https?:\/\//i.test(config.base_url.trim()))) {
+    errors.base_url = '必须是 http(s) 开头的 URL 或留空';
+  }
+
   const defaults = config.defaults;
   if (defaults !== undefined && defaults !== null) {
     if (typeof defaults !== 'object' || Array.isArray(defaults)) {
@@ -73,6 +77,11 @@ function validateConfig(config) {
         }
         if (item.enabled !== undefined && typeof item.enabled !== 'boolean') {
           errors[base + '.enabled'] = '必须是 true/false';
+        }
+        if (item.skip_eps !== undefined) {
+          const okSkip = Array.isArray(item.skip_eps)
+            && item.skip_eps.every(x => Number.isInteger(x) && x > 0);
+          if (!okSkip) errors[base + '.skip_eps'] = '必须是正整数数组';
         }
         if (!empty(item.site_id) && !isPositiveInt(item.site_id)) {
           errors[base + '.site_id'] = '必须是正整数';

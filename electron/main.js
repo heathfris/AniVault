@@ -9,6 +9,8 @@ const { validateConfig } = require('../src/config/validator.js');
 const { createRunner } = require('../src/runner.js');
 const { readCsv, tailFile } = require('../src/csv.js');
 const { syncSchedule, queryTask, TASK_NAME } = require('../src/schedule.js');
+const { countEpisodeFiles, findFolder } = require('../anime_updater.js');
+const { summarize } = require('../src/summary.js');
 
 const SMOKE_TIMEOUT_MS = 30 * 1000;
 const RUN_LOG_CAP = 500;
@@ -290,9 +292,47 @@ function registerIpc() {
   });
   ipcMain.handle('csv:read', () => {
     try {
-      return { ok: true, rows: readCsv(csvFile()), file: csvFile() };
+      const rows = readCsv(csvFile());
+      const cfg = readConfig(configFile());
+      const animeMap = (cfg.ok && cfg.data.anime) || {};
+      const summaries = {};
+      for (const title of new Set(rows.map(r => r.title))) {
+        const info = Object.assign({}, animeMap[title] || {}, { title });
+        let folderCount = -1;
+        try {
+          const folder = findFolder(info);
+          if (folder) folderCount = countEpisodeFiles(folder.dir, info);
+        } catch (e) {
+          folderCount = -1;
+        }
+        summaries[title] = summarize(info, folderCount);
+      }
+      return { ok: true, rows, summaries, file: csvFile() };
     } catch (e) {
-      return { ok: false, error: e.message, rows: [] };
+      return { ok: false, error: e.message, rows: [], summaries: {} };
+    }
+  });
+  ipcMain.handle('csv:delete', (_e, payload) => {
+    const title = payload && payload.title;
+    const ep = payload && payload.ep;
+    if (typeof title !== 'string' || !Number.isInteger(ep) || ep <= 0) {
+      return { ok: false, error: '参数不合法' };
+    }
+    const cfg = readConfig(configFile());
+    if (!cfg.ok) return { ok: false, error: cfg.error };
+    const info = cfg.data.anime && cfg.data.anime[title];
+    if (!info) return { ok: false, error: '找不到该番剧: ' + title };
+    const skip = Array.isArray(info.skip_eps)
+      ? info.skip_eps.filter(x => Number.isInteger(x) && x > 0)
+      : [];
+    if (!skip.includes(ep)) skip.push(ep);
+    skip.sort((a, b) => a - b);
+    info.skip_eps = skip;
+    try {
+      atomicWriteJson(configFile(), cfg.data);
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: '写入失败: ' + e.message };
     }
   });
   ipcMain.handle('env:info', () => ({

@@ -20,6 +20,7 @@ const {
   filterRowsByResults,
   processOneAnime,
   resolveDownloadedStart,
+  withoutSkippedEps,
   runPool,
   writeCsv,
 } = require('../anime_updater.js');
@@ -182,6 +183,22 @@ async function testEnabledDefaultStillQueriesMaxEp() {
     deps: { getMaxEp: async () => { spy.push('maxEp'); return 0; } },
   });
   assert.deepEqual(spy, ['maxEp']);
+}
+
+function testWithoutSkippedEps() {
+  assert.deepEqual(withoutSkippedEps([1, 2, 3, 4], [2, 4]), [1, 3]);
+  assert.deepEqual(withoutSkippedEps([1, 2], []), [1, 2]);
+  assert.deepEqual(withoutSkippedEps([1, 2], [9]), [1, 2]);
+}
+
+async function testSkipEpsNotInRows() {
+  const rows = [];
+  await processOneAnime('Test Anime', { site_id: 12345, downloaded_end: 0, skip_eps: [1] }, { defaults: {}, anime: {} }, {
+    dryRun: true,
+    rows,
+    deps: { getMaxEp: async () => 3 },
+  });
+  assert.deepEqual(rows.map(r => r.ep), [2, 3]);
 }
 
 async function testDownloadEpisodePassesAttemptTimeout() {
@@ -570,6 +587,10 @@ Promise.resolve()
   .then(() => console.log('PASS enabled=false 不调用 getMaxEp'))
   .then(testEnabledDefaultStillQueriesMaxEp)
   .then(() => console.log('PASS 缺省 enabled 视为启用'))
+  .then(testWithoutSkippedEps)
+  .then(() => console.log('PASS withoutSkippedEps 过滤'))
+  .then(testSkipEpsNotInRows)
+  .then(() => console.log('PASS skip_eps 中的集不出现在 rows'))
   .then(testDownloadEpisodePassesAttemptTimeout)
   .then(() => console.log('PASS attemptTimeoutMs 传给 waitForFile'))
   .then(testDownloadEpisodeDefaultTimeoutFallback)

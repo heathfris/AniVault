@@ -40,6 +40,7 @@ function createCard(title, item, expanded = false) {
       <label class="check enable-toggle">
         <input class="f-enabled" type="checkbox" ${item.enabled === false ? '' : 'checked'}> 启用
       </label>
+      <span class="enabled-label">是否启用: ${item.enabled === false ? '错' : '对'}</span>
       <button class="del">删除</button>
     </div>
     <div class="fields">
@@ -64,6 +65,9 @@ function createCard(title, item, expanded = false) {
       <label>file_name
         <input class="f-file_name" value="${escapeHtml(item.file_name ?? '')}">
       </label>
+      <label>skip_eps（逗号分隔，留空 = 无）
+        <input class="f-skip_eps" value="${Array.isArray(item.skip_eps) ? escapeHtml(item.skip_eps.join(',')) : ''}">
+      </label>
     </div>
     <div class="card-errors errors"></div>`;
   card.querySelector('.del').addEventListener('click', () => card.remove());
@@ -73,6 +77,7 @@ function createCard(title, item, expanded = false) {
 
 function render() {
   $('fetch_time').value = state.config.fetch_time || '';
+  $('base_url').value = state.config.base_url || '';
   $('max_download').value = state.config.defaults?.max_download ?? '';
   $('max_parallel').value = state.config.defaults?.max_parallel ?? 1;
   $('download_engine').value = state.config.defaults?.download_engine || 'aria2';
@@ -89,6 +94,7 @@ function render() {
 function collectConfig() {
   const cfg = {
     fetch_time: $('fetch_time').value.trim(),
+    base_url: $('base_url').value.trim(),
     defaults: {
       max_download: numberOrNull($('max_download').value),
       max_parallel: numberOrNull($('max_parallel').value),
@@ -115,6 +121,10 @@ function collectConfig() {
       const v = raw[key];
       if (v !== null && v !== '') item[key] = v;
     }
+    const skipRaw = card.querySelector('.f-skip_eps').value;
+    const skipEps = skipRaw.split(/[,，\s]+/).map(s => parseInt(s, 10)).filter(n => Number.isInteger(n) && n > 0);
+    const skipUniq = [...new Set(skipEps)].sort((a, b) => a - b);
+    if (skipUniq.length) item.skip_eps = skipUniq;
     if (!card.querySelector('.f-enabled').checked) item.enabled = false;
     cfg.anime[title] = item;
   }
@@ -277,11 +287,18 @@ async function refreshCsv() {
   }
   for (const row of r.rows) {
     const tr = document.createElement('tr');
-    for (const v of [row.title, String(row.ep), row.url]) {
+    const summary = (r.summaries && r.summaries[row.title]) || { downloaded: '?', total: 0 };
+    for (const v of [row.title, String(row.ep), row.url, summary.downloaded + '/' + summary.total]) {
       const td = document.createElement('td');
       td.textContent = v;
       tr.appendChild(td);
     }
+    const tdOp = document.createElement('td');
+    const delBtn = document.createElement('button');
+    delBtn.textContent = '删除';
+    delBtn.addEventListener('click', () => deleteRow(row.title, row.ep));
+    tdOp.appendChild(delBtn);
+    tr.appendChild(tdOp);
     tbody.appendChild(tr);
   }
   if (!r.rows.length) {
@@ -291,6 +308,22 @@ async function refreshCsv() {
     td.textContent = '暂无待下载项';
     tr.appendChild(td);
     tbody.appendChild(tr);
+  }
+}
+
+async function deleteRow(title, ep) {
+  const r = await window.anivault.readConfig();
+  if (!r.ok) return;
+  const info = r.data.anime && r.data.anime[title];
+  if (!info) return;
+  const skip = Array.isArray(info.skip_eps) ? info.skip_eps.filter(x => Number.isInteger(x) && x > 0) : [];
+  if (!skip.includes(ep)) skip.push(ep);
+  skip.sort((a, b) => a - b);
+  info.skip_eps = skip;
+  const s = await window.anivault.saveConfig(r.data);
+  if (s.ok) {
+    refreshCsv();
+    load();
   }
 }
 

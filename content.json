@@ -1,5 +1,6 @@
 {
   "fetch_time": "18:00",
+  "base_url": "",
   "defaults": {
     "max_download": 10,
     "max_parallel": 3,

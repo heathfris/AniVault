@@ -241,6 +241,36 @@ test('fetch_time 空值通过', () => {
   assert.equal(r.ok, true);
 });
 
+test('skip_eps 正整数数组通过', () => {
+  const c = valid();
+  c.anime['测试番'].skip_eps = [1, 3];
+  assert.equal(validateConfig(c).ok, true);
+});
+
+test('skip_eps 非法被拒', () => {
+  for (const bad of ['1', [0], [-1], [1.5], 'x']) {
+    const c = valid();
+    c.anime['测试番'].skip_eps = bad;
+    assert.equal(validateConfig(c).ok, false);
+  }
+});
+
+test('base_url 非法被拒', () => {
+  const c = valid();
+  c.base_url = 'ftp://x';
+  const r = validateConfig(c);
+  assert.equal(r.ok, false);
+  assert.ok(r.errors.base_url);
+});
+
+test('base_url http(s) 与空通过', () => {
+  for (const v of ['', null, undefined, 'https://www.agedm.io', 'http://mirror.example.com']) {
+    const c = valid();
+    c.base_url = v;
+    assert.equal(validateConfig(c).ok, true);
+  }
+});
+
 let passed = 0;
 Promise.resolve()
   .then(async () => {

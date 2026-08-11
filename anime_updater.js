@@ -20,8 +20,15 @@ function getAria2Path() {
 }
 const FFMPEG = getFfmpegPath();
 const ARIA2 = getAria2Path();
-function getBase() {
-  return process.env.AGE_BASE || 'https://www.agedm.io';
+function getBase(file = CONTENT) {
+  if (process.env.AGE_BASE) return process.env.AGE_BASE;
+  try {
+    const content = JSON.parse(fs.readFileSync(file, 'utf8'));
+    if (content.base_url && /^https?:\/\//i.test(content.base_url)) return content.base_url;
+  } catch (e) {
+    /* 读取失败用默认值 */
+  }
+  return 'https://www.agedm.io';
 }
 const DLOAD = process.env.AGE_DLOAD || 'D:\\idm下载';
 const CONTENT = process.env.AGE_CONTENT || path.join(WORK, 'content.json');
@@ -551,6 +558,11 @@ function filterRowsByResults(rows, title, missing, results, dryRun) {
   return rows;
 }
 
+function withoutSkippedEps(missing, skipEps) {
+  const skip = new Set(Array.isArray(skipEps) ? skipEps.filter(x => Number.isInteger(x) && x > 0) : []);
+  return missing.filter(ep => !skip.has(ep));
+}
+
 function isIdmRunning() {
   const r = spawnSync('tasklist.exe', ['/FI', 'IMAGENAME eq IDMan.exe', '/NH'], { encoding: 'utf8', windowsHide: true });
   return r.status === 0 && /IDMan\.exe/i.test(r.stdout || '');
@@ -787,7 +799,7 @@ async function processOneAnime(title, info, content, options = {}) {
   for (const ep of range.newEps) missingSet.add(ep);
   const unavailable = [...missingSet].filter(ep => ep > maxEp);
   for (const ep of unavailable) blocked(`${title}: 第${ep}集缺失但站内已无该集，无法补`);
-  const missing = [...missingSet].filter(ep => ep <= maxEp).sort((a, b) => a - b);
+  const missing = withoutSkippedEps([...missingSet].filter(ep => ep <= maxEp), info.skip_eps).sort((a, b) => a - b);
   if (missing.length === 0) {
     progress(`${title}: 无新集（downloaded_end=${end}，站内 ${maxEp}）`);
     return { changed };
@@ -907,7 +919,7 @@ async function main() {
   await processAllAnime(content, { dryRun });
 }
 
-module.exports = { searchSite, parseFolderName, applyTemplate, validName, resolveFolderName, resolveFileName, renameFolder, safeRenameFolder, getEpisodeFileMatcher, countEpisodeFiles, findEpisodeFile, planDownloadRange, findMissingEps, resolveDownloadedStart, computeNewEnd, filterRowsByResults, getBase, engineChain, getCsvPath, getFfmpegPath, getAria2Path, getFfmpegTempPath, formatLogTime, isIdmRunning, ensureIdmMinimized, idmHasActivity, closeIdmIfIdle, blocked, progress, getMaxEp, getPlayUrl, callIdm, callFfmpeg, callAria2, fetchText, runPool, processOneAnime, processAllAnime, waitForFile, downloadEpisode, findFolder, findFolderByTitle, normalizeTime, syncTask, readTaskState, writeCsv };
+module.exports = { searchSite, parseFolderName, applyTemplate, validName, resolveFolderName, resolveFileName, renameFolder, safeRenameFolder, getEpisodeFileMatcher, countEpisodeFiles, findEpisodeFile, planDownloadRange, findMissingEps, resolveDownloadedStart, computeNewEnd, filterRowsByResults, withoutSkippedEps, getBase, engineChain, getCsvPath, getFfmpegPath, getAria2Path, getFfmpegTempPath, formatLogTime, isIdmRunning, ensureIdmMinimized, idmHasActivity, closeIdmIfIdle, blocked, progress, getMaxEp, getPlayUrl, callIdm, callFfmpeg, callAria2, fetchText, runPool, processOneAnime, processAllAnime, waitForFile, downloadEpisode, findFolder, findFolderByTitle, normalizeTime, syncTask, readTaskState, writeCsv };
 
 if (require.main === module) {
   main().catch(e => {
