@@ -15,30 +15,37 @@
   <main>
     <section id="global">
       <h2>全局设置</h2>
-      <label>每日抓取时间
+      <div class="field-row">
+        <span class="field-label">每日抓取时间</span>
         <input id="fetch_time" type="text" placeholder="18:00，留空 = 关闭">
-      </label>
-      <label>站点地址（留空 = 默认）
-        <input id="base_url" type="text" placeholder="https://www.agedm.io">
-      </label>
-      <label>单次最多下载（0 = 不限）
-        <input id="max_download" type="number" min="0" step="1">
-      </label>
-      <label>并发下载数（1-10）
-        <input id="max_parallel" type="number" min="1" max="10" step="1" value="1">
-        <span class="hint">推荐：3</span>
-      </label>
-      <label>下载引擎
+      </div>
+      <div class="field-row">
+        <span class="field-label">站点地址</span>
+        <input id="base_url" type="text" placeholder="留空 = https://www.agedm.io">
+      </div>
+      <div class="field-row">
+        <span class="field-label">单次最多下载</span>
+        <input id="max_download" type="number" min="0" step="1" class="num">
+        <span class="hint">0 = 不限</span>
+      </div>
+      <div class="field-row">
+        <span class="field-label">并发下载数</span>
+        <input id="max_parallel" type="number" min="1" max="10" step="1" value="1" class="num">
+        <span class="hint">范围 1-10，推荐：3</span>
+      </div>
+      <div class="field-row">
+        <span class="field-label">下载引擎</span>
         <select id="download_engine">
           <option value="aria2">aria2（默认）</option>
           <option value="idm">IDM（仅交互模式）</option>
           <option value="ffmpeg">ffmpeg</option>
         </select>
-      </label>
-      <label>单次下载等待上限（分钟，5-60）
-        <input id="attempt_timeout_min" type="number" min="5" max="60" step="1" value="20">
-        <span class="hint">默认 20，替代固定 45 分钟</span>
-      </label>
+      </div>
+      <div class="field-row">
+        <span class="field-label">单次等待上限</span>
+        <input id="attempt_timeout_min" type="number" min="5" max="60" step="1" value="20" class="num">
+        <span class="hint">分钟，范围 5-60，默认 20</span>
+      </div>
       <label class="check">
         <input id="auto_repair" type="checkbox"> 缺失集自动补下
       </label>

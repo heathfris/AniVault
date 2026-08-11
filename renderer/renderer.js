@@ -34,14 +34,13 @@ function createCard(title, item, expanded = false) {
   card.innerHTML = `
     <div class="card-head">
       <button class="arrow" title="展开/收起">&gt;</button>
-      <label>片名
-        <input class="f-title" value="${escapeHtml(title)}">
-      </label>
+      <input class="f-title" value="${escapeHtml(title)}" placeholder="输入名称">
       <label class="check enable-toggle">
         <input class="f-enabled" type="checkbox" ${item.enabled === false ? '' : 'checked'}>
         <span class="toggle-text">${item.enabled === false ? '关' : '开'}</span>
       </label>
-      <button class="del">删除</button>
+      <button class="edit">编辑</button>
+      <button class="del danger">删除</button>
     </div>
     <div class="fields">
       <label>site_id
@@ -71,7 +70,9 @@ function createCard(title, item, expanded = false) {
     </div>
     <div class="card-errors errors"></div>`;
   card.querySelector('.del').addEventListener('click', () => card.remove());
-  card.querySelector('.arrow').addEventListener('click', () => card.classList.toggle('open'));
+  const toggleOpen = () => card.classList.toggle('open');
+  card.querySelector('.arrow').addEventListener('click', toggleOpen);
+  card.querySelector('.edit').addEventListener('click', toggleOpen);
   const enableInput = card.querySelector('.f-enabled');
   enableInput.addEventListener('change', () => {
     const text = card.querySelector('.toggle-text');
@@ -90,7 +91,14 @@ function render() {
   $('auto_repair').checked = Boolean(state.config.defaults?.auto_repair);
   $('auto_close_idm').checked = Boolean(state.config.defaults?.auto_close_idm);
   $('anime-list').innerHTML = '';
-  for (const [title, item] of Object.entries(state.config.anime || {})) {
+  const entries = Object.entries(state.config.anime || {});
+  if (!entries.length) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
+    empty.textContent = '暂无追番，点击右上角添加番剧';
+    $('anime-list').appendChild(empty);
+  }
+  for (const [title, item] of entries) {
     $('anime-list').appendChild(createCard(title, item || {}));
   }
   clearErrors();
