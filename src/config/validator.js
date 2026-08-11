@@ -42,6 +42,10 @@ function validateConfig(config) {
     errors.fetch_time = '格式必须是 HH:MM（如 18:00）';
   }
 
+  if (!empty(config.auto_run_time) && (typeof config.auto_run_time !== 'string' || !TIME_RE.test(config.auto_run_time.trim()))) {
+    errors.auto_run_time = '格式必须是 HH:MM 或留空';
+  }
+
   const defaults = config.defaults;
   if (defaults !== undefined && defaults !== null) {
     if (typeof defaults !== 'object' || Array.isArray(defaults)) {
@@ -70,6 +74,9 @@ function validateConfig(config) {
         if (!item || typeof item !== 'object' || Array.isArray(item)) {
           errors[base] = '条目必须是对象';
           continue;
+        }
+        if (item.enabled !== undefined && typeof item.enabled !== 'boolean') {
+          errors[base + '.enabled'] = '必须是 true/false';
         }
         if (!empty(item.site_id) && !isPositiveInt(item.site_id)) {
           errors[base + '.site_id'] = '必须是正整数';

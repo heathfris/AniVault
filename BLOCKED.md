@@ -2,6 +2,12 @@
 
 无
 
+## 番仓 AniVault 0.6.0 待裁决/范围外（2026-08-11）
+- 计划任务只操作 AniVaultAutoRun；旧任务 AGEAnimeUpdater 保持现状（已定格，只读不碰）。
+- AniVaultAutoRun 按当前用户创建、仅登录时运行（schtasks 不带 /ru /rp）；自动运行由 scripts/auto-run.cmd 以 ELECTRON_RUN_AS_NODE=1 + AGE_RUN_MODE=password 启动 updater。
+- preload 不在本件白名单，schedule:status IPC 已加在 main，renderer 经 config:save 响应展示任务状态；enabled 仅在停用时写入 false（启用状态缺省即 true，不污染条目）。
+- 单部番启停之外的多站、安装包、顺手重构仍留后续件。
+
 ## 番仓 AniVault 0.5.0 待裁决/范围外（2026-08-10）
 - 清单剩余化只作用于“本轮计划”内：下载开始前推入的计划行在结束后按结果剔除；查询全失败且 0 行时沿用 0.3.1 保留旧清单逻辑。
 - EP_STATUS 只进 stdout 不进 PROGRESS；解析失败的行直接忽略；日志区仍只显示 PROGRESS。

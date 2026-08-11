@@ -1,5 +1,10 @@
 # PROGRESS
 
+## 番仓 AniVault 0.6.0 开工回执（2026-08-11）
+- 理解的目标：找回“每天定时自动追更”——每部番 enabled 单独启停（停用整部跳过），全局 auto_run_time 保存后同步 Windows 计划任务 AniVaultAutoRun（留空删除），不碰旧任务 AGEAnimeUpdater。
+- 顺序：任务0核对（84 PASS、AniVaultAutoRun 不存在）→ enabled 跳过 TDD → schedule 模块 TDD（假 schtasks）→ main/renderer 接线 → 真实验证（创建→查询→删除、auto-run.cmd --dry-run）→ 文档版本 0.6.0 四面同步 → 提交。
+- 最大风险：计划任务只操作 AniVaultAutoRun；auto-run.cmd 必须不依赖系统 node（用 Electron 自带运行时）；preload 不在白名单，任务状态经保存响应展示。
+
 ## 番仓 AniVault 0.5.0 开工回执（2026-08-10）
 - 理解的目标：三件体验升级——待下载清单改为“剩余待下载”（成功/已存在集剔除）、番剧卡片默认折叠、面板实时显示每集下载状态。
 - 顺序：任务0核对 → 清单剩余化 TDD（filterRowsByResults）→ EP_STATUS 输出/main 解析/run:status+事件 → 折叠卡片与状态区渲染 → 文档版本 0.5.0 四面同步 → 提交。
@@ -489,3 +494,13 @@ D:\project_codex\����\tools\aria2\aria2c.exe: unknown option -- hls-segm
 2026-08-10 21:17:36 幼女战记 第二季: 无新集（downloaded_end=5，站内 5）
 2026-08-10 21:17:37 擅长逃跑的殿下 第二季: 无新集（downloaded_end=4，站内 4）
 2026-08-10 21:17:37 待下载清单已写: D:\project_codex\番仓\local\待下载清单.csv（0 行）
+2026-08-11 09:11:58 启动 (dry-run)
+2026-08-11 09:11:58 计划任务时间无需变更（18:00）
+2026-08-11 09:12:00 尼古喵喵: 无新集（downloaded_end=6，站内 6）
+2026-08-11 09:12:01 BanG Dream! YUME∞MITA: 无新集（downloaded_end=8，站内 8）
+2026-08-11 09:12:02 感谢对战 大小姐才不玩格斗游戏: 无新集（downloaded_end=5，站内 5）
+2026-08-11 09:12:03 再见，拉拉: 无新集（downloaded_end=6，站内 6）
+2026-08-11 09:12:04 穹庐下的魔女: 无新集（downloaded_end=7，站内 7）
+2026-08-11 09:12:05 幼女战记 第二季: 无新集（downloaded_end=5，站内 5）
+2026-08-11 09:12:06 擅长逃跑的殿下 第二季: 无新集（downloaded_end=4，站内 4）
+2026-08-11 09:12:06 待下载清单已写: D:\project_codex\番仓\local\待下载清单.csv（0 行）

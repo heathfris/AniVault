@@ -1,5 +1,6 @@
 {
   "fetch_time": "18:00",
+  "auto_run_time": "",
   "defaults": {
     "max_download": 10,
     "max_parallel": 3,

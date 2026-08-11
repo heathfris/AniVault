@@ -8,6 +8,7 @@ const path = require('node:path');
 const { validateConfig } = require('../src/config/validator.js');
 const { createRunner } = require('../src/runner.js');
 const { readCsv, tailFile } = require('../src/csv.js');
+const { syncSchedule, queryTask, TASK_NAME } = require('../src/schedule.js');
 
 const SMOKE_TIMEOUT_MS = 30 * 1000;
 const RUN_LOG_CAP = 500;
@@ -241,10 +242,19 @@ function registerIpc() {
     if (!vr.ok) return { ok: false, errors: vr.errors };
     try {
       atomicWriteJson(configFile(), cfg);
-      return { ok: true };
+      const schedule = syncSchedule({
+        time: cfg.auto_run_time,
+        launcherPath: path.join(appRoot(), 'scripts', 'auto-run.cmd'),
+      });
+      return { ok: true, schedule };
     } catch (e) {
       return { ok: false, error: '写入失败: ' + e.message };
     }
+  });
+
+  ipcMain.handle('schedule:status', () => {
+    const q = queryTask();
+    return { taskName: TASK_NAME, exists: q.exists, output: q.output };
   });
 
   ipcMain.handle('run:start', (_e, mode) => {

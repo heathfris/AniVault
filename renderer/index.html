@@ -17,6 +17,9 @@
       <label>每日抓取时间
         <input id="fetch_time" type="text" placeholder="18:00">
       </label>
+      <label>每日自动运行时间（HH:MM，留空关闭）
+        <input id="auto_run_time" type="text" placeholder="留空 = 关闭">
+      </label>
       <label>单次最多下载（0 = 不限）
         <input id="max_download" type="number" min="0" step="1">
       </label>
@@ -59,6 +62,7 @@
         <button id="open-download">打开下载目录</button>
       </div>
       <div id="run-status" class="run-status">空闲</div>
+      <div id="schedule-status" class="schedule-status"></div>
       <div id="episode-status" class="episode-status"></div>
       <div class="run-columns">
         <div>

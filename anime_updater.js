@@ -699,6 +699,11 @@ async function processOneAnime(title, info, content, options = {}) {
   const attemptTimeoutMs = attemptTimeoutMin * 60 * 1000;
   let changed = false;
 
+  if (info.enabled === false) {
+    progress(`${title}: 已停用，跳过`);
+    return { changed: false };
+  }
+
   if (!info.site_id) {
     const s = await searchSite(title);
     if (!s) { blocked(`搜索不到站内条目: ${title}`); return { changed: false }; }

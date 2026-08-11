@@ -218,6 +218,38 @@ test('attempt_timeout_min 60 通过', () => {
   assert.equal(validateConfig(c).ok, true);
 });
 
+test('enabled 非布尔被拒', () => {
+  const c = valid();
+  c.anime['测试番'].enabled = 'yes';
+  const r = validateConfig(c);
+  assert.equal(r.ok, false);
+  assert.ok(r.errors['anime.测试番.enabled']);
+});
+
+test('enabled true/false 通过', () => {
+  for (const v of [true, false]) {
+    const c = valid();
+    c.anime['测试番'].enabled = v;
+    assert.equal(validateConfig(c).ok, true);
+  }
+});
+
+test('auto_run_time 非法被拒', () => {
+  const c = valid();
+  c.auto_run_time = '25:00';
+  const r = validateConfig(c);
+  assert.equal(r.ok, false);
+  assert.ok(r.errors.auto_run_time);
+});
+
+test('auto_run_time 合法与空值通过', () => {
+  for (const v of ['', null, undefined, '18:00']) {
+    const c = valid();
+    c.auto_run_time = v;
+    assert.equal(validateConfig(c).ok, true);
+  }
+});
+
 let passed = 0;
 Promise.resolve()
   .then(async () => {

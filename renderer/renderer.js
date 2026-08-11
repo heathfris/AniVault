@@ -37,6 +37,9 @@ function createCard(title, item, expanded = false) {
       <label>片名
         <input class="f-title" value="${escapeHtml(title)}">
       </label>
+      <label class="check enable-toggle">
+        <input class="f-enabled" type="checkbox" ${item.enabled === false ? '' : 'checked'}> 启用
+      </label>
       <button class="del">删除</button>
     </div>
     <div class="fields">
@@ -70,6 +73,7 @@ function createCard(title, item, expanded = false) {
 
 function render() {
   $('fetch_time').value = state.config.fetch_time || '';
+  $('auto_run_time').value = state.config.auto_run_time || '';
   $('max_download').value = state.config.defaults?.max_download ?? '';
   $('max_parallel').value = state.config.defaults?.max_parallel ?? 1;
   $('download_engine').value = state.config.defaults?.download_engine || 'aria2';
@@ -86,6 +90,7 @@ function render() {
 function collectConfig() {
   const cfg = {
     fetch_time: $('fetch_time').value.trim(),
+    auto_run_time: $('auto_run_time').value.trim(),
     defaults: {
       max_download: numberOrNull($('max_download').value),
       max_parallel: numberOrNull($('max_parallel').value),
@@ -112,6 +117,7 @@ function collectConfig() {
       const v = raw[key];
       if (v !== null && v !== '') item[key] = v;
     }
+    if (!card.querySelector('.f-enabled').checked) item.enabled = false;
     cfg.anime[title] = item;
   }
   return cfg;
@@ -174,7 +180,20 @@ async function save() {
     }
     state.config = back.data;
     render();
-    $('save-msg').textContent = '已保存并回读一致';
+    let msg = '已保存并回读一致';
+    if (r.schedule) {
+      if (r.schedule.ok) {
+        const label = {
+          created: '已创建定时任务',
+          updated: '已更新定时任务',
+          deleted: '定时任务已删除（自动运行关闭）',
+        }[r.schedule.action] || '定时任务已同步';
+        msg += '；' + label;
+      } else {
+        msg += '；定时任务同步失败: ' + (r.schedule.output || '').trim() + '；手动命令: ' + r.schedule.command;
+      }
+    }
+    $('save-msg').textContent = msg;
   } else if (r.errors) {
     renderErrors(r.errors);
     $('save-msg').textContent = '有校验错误，未写盘';

@@ -18,6 +18,7 @@ const {
   getEpisodeFileMatcher,
   computeNewEnd,
   filterRowsByResults,
+  processOneAnime,
   resolveDownloadedStart,
   runPool,
   writeCsv,
@@ -160,6 +161,27 @@ function testFilterRowsAllFailKeepsAll() {
   ];
   filterRowsByResults(rows, 'T', [1, 2], [{ ok: false }, { ok: false }], false);
   assert.equal(rows.length, 2);
+}
+
+async function testDisabledAnimeSkipsMaxEp() {
+  const spy = [];
+  const r = await processOneAnime('Test Anime', { site_id: 12345, enabled: false }, { defaults: {}, anime: {} }, {
+    dryRun: true,
+    rows: [],
+    deps: { getMaxEp: async () => { spy.push('maxEp'); return 0; } },
+  });
+  assert.deepEqual(spy, []);
+  assert.equal(r.changed, false);
+}
+
+async function testEnabledDefaultStillQueriesMaxEp() {
+  const spy = [];
+  await processOneAnime('Test Anime', { site_id: 12345 }, { defaults: {}, anime: {} }, {
+    dryRun: true,
+    rows: [],
+    deps: { getMaxEp: async () => { spy.push('maxEp'); return 0; } },
+  });
+  assert.deepEqual(spy, ['maxEp']);
 }
 
 async function testDownloadEpisodePassesAttemptTimeout() {
@@ -544,6 +566,10 @@ Promise.resolve()
   .then(() => console.log('PASS dry-run rows 保留全部计划'))
   .then(testFilterRowsAllFailKeepsAll)
   .then(() => console.log('PASS 全部失败 rows 保留'))
+  .then(testDisabledAnimeSkipsMaxEp)
+  .then(() => console.log('PASS enabled=false 不调用 getMaxEp'))
+  .then(testEnabledDefaultStillQueriesMaxEp)
+  .then(() => console.log('PASS 缺省 enabled 视为启用'))
   .then(testDownloadEpisodePassesAttemptTimeout)
   .then(() => console.log('PASS attemptTimeoutMs 传给 waitForFile'))
   .then(testDownloadEpisodeDefaultTimeoutFallback)
