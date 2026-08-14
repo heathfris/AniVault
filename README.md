@@ -1,4 +1,4 @@
-# 番仓 AniVault（0.9.0）
+# 番仓 AniVault（0.9.1）
 
 AGE 动漫自动追更下载器的新桌面面板：查看/修改/保存配置，触发 dry-run 或下载、停止运行、看实时日志与待下载清单、打开下载目录。0.3.0 起下载引擎改为 aria2。
 
@@ -16,7 +16,7 @@ AGE 动漫自动追更下载器的新桌面面板：查看/修改/保存配置�
 - 每集下载状态：运行中实时显示每集 下载中/完成/失败，新一轮开始时清空
 - 番剧卡片折叠：已有卡片默认收起（片名+删除+展开箭头），新增卡片默认展开
 - 单部番启停：每部番可单独停用（`enabled: false`），停用后不查站、不补字段、不下载
-- 每日自动运行：全局设置“每日抓取时间”`fetch_time`（HH:MM，留空关闭），保存后自动创建/更新/删除计划任务 `AniVaultAutoRun`（仅登录时运行，不碰旧任务 AGEAnimeUpdater）
+- 每日自动运行：全局设置“每日抓取时间”`fetch_time`（HH:MM，留空关闭），保存后自动创建/更新/删除计划任务 `AniVaultAutoRun`；任务仅登录时运行，通过 `wscript.exe` 调用 `scripts/auto-run.vbs`，不会弹出命令行窗口或 Windows Terminal 标签；不碰旧任务 `AGEAnimeUpdater`
 - 手动跳过某集：清单行“删除”写入该番 `skip_eps`，之后运行不再列出；卡片展开区可查看/清空
 - 清单汇总列：表格显示每部番“已下载/总数”（total = site_latest 或 downloaded_end，文件夹不可读时显示 ?）
 - 站点地址可改：面板 `base_url`（留空 = 默认 https://www.agedm.io），优先级 AGE_BASE > base_url > 默认
@@ -25,6 +25,7 @@ AGE 动漫自动追更下载器的新桌面面板：查看/修改/保存配置�
 - 滚动修复：日志区与清单区固定 320px 高、内容超出各自内部滚动、两栏等高（0.8.1）
 - 表单与列表标准化（0.8.2）：全局设置左标签右控件垂直单列、所有 input/select 统一样式、数字类定宽、hint 置控件下方；列表行 = 箭头+名称输入+开/关+「编辑」+「删除」（危险色），hover 浅底色，空状态提示；≤1000px 自动单列；新增 `tests/ui-check.js` 防回归
 - 性能优化（0.9.0）：无头 Edge 浏览器一次运行只启动一个实例（取址并发各自独立 context）；PROGRESS/BLOCKED 日志超 2000 行自动轮转保留尾部；面板日志只读文件末尾；站点地址（getBase）按文件缓存。连接头 `Connection: close` 与 aria2 `-x16` 保持现状（防 fetch failed 与限流，后续再调）
+- 无窗口自动运行（0.9.1）：`AniVaultAutoRun` 改由 `wscript.exe` 调用 `scripts/auto-run.vbs`，隐藏启动 Electron Node 模式并传递退出码；`scripts/auto-run.cmd` 保留用于手动调试
 - downloaded_start 自动规则：文件夹已有 ≥1 集 → 1，0 集 → 0（数不出集数时不改）
 - 日志区只显示 PROGRESS 末尾（BLOCKED 仍照常写入文件）
 - 实时日志（PROGRESS 末尾，上滚不拉回）、待下载清单表格、打开下载目录
@@ -64,4 +65,4 @@ node tests/csv.test.js
 node tests/resilience.test.js
 ```
 
-当前版本 0.9.0，版本记录见使用说明.md 文末。
+当前版本 0.9.1，版本记录见使用说明.md 文末。

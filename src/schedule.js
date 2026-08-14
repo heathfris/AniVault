@@ -5,7 +5,8 @@ const { spawnSync } = require('node:child_process');
 const TASK_NAME = 'AniVaultAutoRun';
 
 function buildCreateArgs(time, launcherPath) {
-  return ['/create', '/tn', TASK_NAME, '/tr', `"${launcherPath}"`, '/sc', 'daily', '/st', time, '/f'];
+  const taskCommand = `wscript.exe //B //NoLogo "${launcherPath}"`;
+  return ['/create', '/tn', TASK_NAME, '/tr', taskCommand, '/sc', 'daily', '/st', time, '/f'];
 }
 
 function buildDeleteArgs() {

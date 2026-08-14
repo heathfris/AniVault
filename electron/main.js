@@ -274,7 +274,7 @@ function registerIpc() {
       atomicWriteJson(configFile(), cfg);
       const schedule = syncSchedule({
         time: cfg.fetch_time,
-        launcherPath: path.join(appRoot(), 'scripts', 'auto-run.cmd'),
+        launcherPath: path.join(appRoot(), 'scripts', 'auto-run.vbs'),
       });
       return { ok: true, schedule };
     } catch (e) {

@@ -1,10 +1,12 @@
 'use strict';
 
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const { syncSchedule, buildCreateArgs, buildDeleteArgs } = require('../src/schedule.js');
 
 const TASK = 'AniVaultAutoRun';
-const LAUNCHER = 'D:\\x\\scripts\\auto-run.cmd';
+const LAUNCHER = 'D:\\x\\scripts\\auto-run.vbs';
 
 function fakeSchtasks(handler) {
   return (cmd, args, opts) => handler(cmd, args, opts);
@@ -15,7 +17,7 @@ function test(name, fn) {
   tests.push({ name, fn });
 }
 
-test('有 HH:MM 时创建任务且命令含 auto-run.cmd 全路径', () => {
+test('有 HH:MM 时通过 wscript 创建无窗口任务', () => {
   const calls = [];
   const st = fakeSchtasks((cmd, args) => {
     calls.push(args);
@@ -31,6 +33,8 @@ test('有 HH:MM 时创建任务且命令含 auto-run.cmd 全路径', () => {
   assert.ok(create.some(a => a.includes(LAUNCHER)));
   assert.ok(create.includes('18:00'));
   assert.ok(create.includes('/f'));
+  const taskCommand = create[create.indexOf('/tr') + 1];
+  assert.equal(taskCommand, `wscript.exe //B //NoLogo "${LAUNCHER}"`);
 });
 
 test('任务已存在时改时间视为更新', () => {
@@ -93,6 +97,20 @@ test('buildCreateArgs 与 buildDeleteArgs 基础形状', () => {
   const d = buildDeleteArgs();
   assert.deepEqual(d[0], '/delete');
   assert.deepEqual(d[1], '/tn');
+});
+
+test('计划任务入口设置后台环境并隐藏等待子进程', () => {
+  const launcher = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'auto-run.vbs'), 'utf8');
+  assert.match(launcher, /ELECTRON_RUN_AS_NODE/);
+  assert.match(launcher, /AGE_RUN_MODE/);
+  assert.match(launcher, /shell\.Run\(command, 0, True\)/i);
+  assert.match(launcher, /WScript\.Quit exitCode/i);
+});
+
+test('Electron 保存配置时同步 VBS 启动器', () => {
+  const main = fs.readFileSync(path.join(__dirname, '..', 'electron', 'main.js'), 'utf8');
+  assert.match(main, /path\.join\(appRoot\(\), 'scripts', 'auto-run\.vbs'\)/);
+  assert.doesNotMatch(main, /launcherPath:.*auto-run\.cmd/);
 });
 
 let passed = 0;
