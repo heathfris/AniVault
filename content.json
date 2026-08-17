@@ -14,16 +14,9 @@
       "site_id": 20260200,
       "update_time": "00:00",
       "downloaded_start": 1,
-      "downloaded_end": 6,
-      "site_latest": 6,
+      "downloaded_end": 7,
+      "site_latest": 7,
       "file_name": "{name}_{ep}.mp4"
-    },
-    "BanG Dream! YUME∞MITA": {
-      "site_id": 20260169,
-      "update_time": "22:00",
-      "downloaded_start": 1,
-      "downloaded_end": 8,
-      "site_latest": 8
     },
     "感谢对战 大小姐才不玩格斗游戏": {
       "site_id": 20260201,
@@ -43,8 +36,8 @@
       "site_id": 20260187,
       "update_time": "22:30",
       "downloaded_start": 1,
-      "downloaded_end": 7,
-      "site_latest": 7
+      "downloaded_end": 8,
+      "site_latest": 8
     }
   }
 }
