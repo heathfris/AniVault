@@ -1,4 +1,4 @@
-# 番仓 AniVault（0.9.1）
+# 番仓 AniVault（0.9.2）
 
 AGE 动漫自动追更下载器的新桌面面板：查看/修改/保存配置，触发 dry-run 或下载、停止运行、看实时日志与待下载清单、打开下载目录。0.3.0 起下载引擎改为 aria2。
 
@@ -26,11 +26,12 @@ AGE 动漫自动追更下载器的新桌面面板：查看/修改/保存配置�
 - 表单与列表标准化（0.8.2）：全局设置左标签右控件垂直单列、所有 input/select 统一样式、数字类定宽、hint 置控件下方；列表行 = 箭头+名称输入+开/关+「编辑」+「删除」（危险色），hover 浅底色，空状态提示；≤1000px 自动单列；新增 `tests/ui-check.js` 防回归
 - 性能优化（0.9.0）：无头 Edge 浏览器一次运行只启动一个实例（取址并发各自独立 context）；PROGRESS/BLOCKED 日志超 2000 行自动轮转保留尾部；面板日志只读文件末尾；站点地址（getBase）按文件缓存。连接头 `Connection: close` 与 aria2 `-x16` 保持现状（防 fetch failed 与限流，后续再调）
 - 无窗口自动运行（0.9.1）：`AniVaultAutoRun` 改由 `wscript.exe` 调用 `scripts/auto-run.vbs`，隐藏启动 Electron Node 模式并传递退出码；`scripts/auto-run.cmd` 保留用于手动调试
+- 目录迁移适配（0.9.2）：项目当前目录为 `D:\project_codex\260814_animeinstall_auto`；两个启动脚本均从自身位置解析项目根目录。目录再次改名后，需重新安装依赖并在面板保存一次配置，以刷新计划任务中的绝对路径
 - downloaded_start 自动规则：文件夹已有 ≥1 集 → 1，0 集 → 0（数不出集数时不改）
 - 日志区只显示 PROGRESS 末尾（BLOCKED 仍照常写入文件）
 - 实时日志（PROGRESS 末尾，上滚不拉回）、待下载清单表格、打开下载目录
 
-暂不包含：站点选择、多站爬取、单部番启停开关、安装包（见 BLOCKED.md）。`auto_close_idm` 仅在本次有 IDM 成功下载时生效。
+暂不包含：站点选择、多站爬取、安装包（见 BLOCKED.md）。`auto_close_idm` 仅在本次有 IDM 成功下载时生效。
 
 ## 网络排查
 
@@ -48,8 +49,8 @@ agedm.io 偶发 fetch failed 时：
 ## 安装与运行
 
 ```powershell
-$env:PATH = "C:\Users\15269\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\15269\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin\fallback;$env:PATH"
-pnpm install
+Set-Location D:\project_codex\260814_animeinstall_auto
+pnpm install --frozen-lockfile
 pnpm run start
 ```
 
@@ -65,4 +66,4 @@ node tests/csv.test.js
 node tests/resilience.test.js
 ```
 
-当前版本 0.9.1，版本记录见使用说明.md 文末。
+当前版本 0.9.2，版本记录见使用说明.md 文末。
