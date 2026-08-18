@@ -81,6 +81,8 @@ function createRunner({ scriptPath, lockPath = defaultLockPath(process.cwd()), o
     if (lockedPid !== null && pidAlive(lockedPid)) {
       return { ok: false, reason: 'locked', pid: lockedPid };
     }
+    // 这次只增加注释，不要修改代码逻辑、变量名、缩进或其他文件。
+    // Start the updater as a child process and record its PID so concurrent runs can be blocked.
     const spec = spawnSpec(scriptPath, args, extraEnv);
     child = spawn(spec.command, spec.args, spec.options);
     writeLock(lockPath, child.pid);
