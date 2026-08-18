@@ -1,4 +1,4 @@
-# 番仓 AniVault（0.9.2）
+# 番仓 AniVault（0.9.3）
 
 AGE 动漫自动追更下载器的新桌面面板：查看/修改/保存配置，触发 dry-run 或下载、停止运行、看实时日志与待下载清单、打开下载目录。0.3.0 起下载引擎改为 aria2。
 
@@ -27,6 +27,7 @@ AGE 动漫自动追更下载器的新桌面面板：查看/修改/保存配置�
 - 性能优化（0.9.0）：无头 Edge 浏览器一次运行只启动一个实例（取址并发各自独立 context）；PROGRESS/BLOCKED 日志超 2000 行自动轮转保留尾部；面板日志只读文件末尾；站点地址（getBase）按文件缓存。连接头 `Connection: close` 与 aria2 `-x16` 保持现状（防 fetch failed 与限流，后续再调）
 - 无窗口自动运行（0.9.1）：`AniVaultAutoRun` 改由 `wscript.exe` 调用 `scripts/auto-run.vbs`，隐藏启动 Electron Node 模式并传递退出码；`scripts/auto-run.cmd` 保留用于手动调试
 - 目录迁移适配（0.9.2）：项目当前目录为 `D:\project_codex\260814_animeinstall_auto`；两个启动脚本均从自身位置解析项目根目录。目录再次改名后，需重新安装依赖并在面板保存一次配置，以刷新计划任务中的绝对路径
+- 维护修复（0.9.3）：界面版本徽标与 `VERSION` 同步；`pnpm test` 统一运行主流程、Node test runner 和 UI 检查；截图命令内置当前 Windows 环境所需的 Chromium Viz 兼容参数
 - downloaded_start 自动规则：文件夹已有 ≥1 集 → 1，0 集 → 0（数不出集数时不改）
 - 日志区只显示 PROGRESS 末尾（BLOCKED 仍照常写入文件）
 - 实时日志（PROGRESS 末尾，上滚不拉回）、待下载清单表格、打开下载目录
@@ -57,13 +58,9 @@ pnpm run start
 ## 自检
 
 ```powershell
+pnpm test           # 主流程测试 + 全部 *.test.js + UI 静态检查
 pnpm run smoke      # 打开窗口，加载成功打印 SMOKE_OK 并退出 0
 pnpm run selftest   # 配置临时副本读写 + 假脚本运行端到端，打印 SELFTEST_OK
-node tests/run-tests.js
-node tests/validator.test.js
-node tests/runner.test.js
-node tests/csv.test.js
-node tests/resilience.test.js
 ```
 
-当前版本 0.9.2，版本记录见使用说明.md 文末。
+当前版本 0.9.3，版本记录见使用说明.md 文末。

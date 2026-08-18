@@ -8,6 +8,8 @@ const root = path.join(__dirname, '..');
 const rendererJs = fs.readFileSync(path.join(root, 'renderer', 'renderer.js'), 'utf8');
 const styles = fs.readFileSync(path.join(root, 'renderer', 'styles.css'), 'utf8');
 const html = fs.readFileSync(path.join(root, 'renderer', 'index.html'), 'utf8');
+const version = fs.readFileSync(path.join(root, 'VERSION'), 'utf8').trim();
+const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
 
 const checks = [];
 function check(name, fn) {
@@ -68,6 +70,32 @@ check('条目 hover 浅底色', () => {
 
 check('存在「编辑」按钮', () => {
   assert.ok(rendererJs.includes('class="edit"'), '缺少 edit 按钮');
+});
+
+check('package 版本与 VERSION 一致', () => {
+  assert.equal(pkg.version, version, 'package.json version 与 VERSION 不一致');
+});
+
+check('界面版本徽标与 VERSION 一致', () => {
+  assert.ok(
+    html.includes(`<span class="version-badge">v${version}</span>`),
+    `界面版本徽标不是 v${version}`,
+  );
+});
+
+check('pnpm test 覆盖全部测试入口', () => {
+  assert.ok(pkg.scripts.test.includes('node tests/run-tests.js'), '缺少主流程测试');
+  assert.ok(pkg.scripts.test.includes('node --test'), '缺少 Node test runner');
+  assert.ok(pkg.scripts.test.includes('node tests/ui-check.js'), '缺少 UI 检查');
+});
+
+check('截图脚本包含 Viz 兼容参数', () => {
+  assert.ok(pkg.scripts.screenshot.includes('--in-process-gpu'), '缺少 --in-process-gpu');
+  assert.ok(
+    pkg.scripts.screenshot.includes('--disable-features=CalculateNativeWinOcclusion'),
+    '缺少 CalculateNativeWinOcclusion 兼容参数',
+  );
+  assert.ok(pkg.scripts.screenshot.includes('--user-data-dir=local/screenshot-profile'), '缺少独立截图 profile');
 });
 
 let passed = 0;
