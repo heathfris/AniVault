@@ -1,4 +1,4 @@
-# 番仓 AniVault（0.9.3）
+# 番仓 AniVault（0.9.4）
 
 AGE 动漫自动追更下载器的新桌面面板：查看/修改/保存配置，触发 dry-run 或下载、停止运行、看实时日志与待下载清单、打开下载目录。0.3.0 起下载引擎改为 aria2。
 
@@ -28,6 +28,7 @@ AGE 动漫自动追更下载器的新桌面面板：查看/修改/保存配置�
 - 无窗口自动运行（0.9.1）：`AniVaultAutoRun` 改由 `wscript.exe` 调用 `scripts/auto-run.vbs`，隐藏启动 Electron Node 模式并传递退出码；`scripts/auto-run.cmd` 保留用于手动调试
 - 目录迁移适配（0.9.2）：项目当前目录为 `D:\project_codex\260814_animeinstall_auto`；两个启动脚本均从自身位置解析项目根目录。目录再次改名后，需重新安装依赖并在面板保存一次配置，以刷新计划任务中的绝对路径
 - 维护修复（0.9.3）：界面版本徽标与 `VERSION` 同步；`pnpm test` 统一运行主流程、Node test runner 和 UI 检查；截图命令内置当前 Windows 环境所需的 Chromium Viz 兼容参数
+- 首页时间校验（0.9.4）：只接受严格的 `HH:MM`，不再把 `2026` 等年份误写入番剧的 `update_time`
 - downloaded_start 自动规则：文件夹已有 ≥1 集 → 1，0 集 → 0（数不出集数时不改）
 - 日志区只显示 PROGRESS 末尾（BLOCKED 仍照常写入文件）
 - 实时日志（PROGRESS 末尾，上滚不拉回）、待下载清单表格、打开下载目录
@@ -63,4 +64,4 @@ pnpm run smoke      # 打开窗口，加载成功打印 SMOKE_OK 并退出 0
 pnpm run selftest   # 配置临时副本读写 + 假脚本运行端到端，打印 SELFTEST_OK
 ```
 
-当前版本 0.9.3，版本记录见使用说明.md 文末。
+当前版本 0.9.4，版本记录见使用说明.md 文末。

@@ -59,6 +59,7 @@ const LINES = [1, 2, 3, 4, 5];
 const MEDIA_RE = /(\.m3u8(\?|$)|\.mp4(\?|$)|video\/tos\/|douyinvod|ixigua\.com|bytecdn|mgtv\.com|bilivideo|ffzy-plays|\.ts\?)/i;
 const BAD_RE = /\.(gif|png|jpe?g|css|js|svg|ico)(\?|$)/i;
 const BAD_NAME_RE = /[\/\\:*?"<>|]/;
+const UPDATE_TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
@@ -203,16 +204,19 @@ async function searchSite(title) {
   return first;
 }
 
-async function getHomeUpdateTimes() {
-  const html = await fetchText(`${getBase()}/`);
+function parseHomeUpdateTimes(html) {
   const map = {};
   const blocks = html.match(/<li[^>]*>[\s\S]*?<\/li>/g) || [];
   for (const b of blocks) {
     const a = b.match(/<a[^>]*>([^<]+)<\/a>/);
     const t = b.match(/class="title_sub[^"]*"[^>]*>\s*([\d:]+)/);
-    if (a && t) map[a[1].trim()] = t[1];
+    if (a && t && UPDATE_TIME_RE.test(t[1])) map[a[1].trim()] = t[1];
   }
   return map;
+}
+
+async function getHomeUpdateTimes() {
+  return parseHomeUpdateTimes(await fetchText(`${getBase()}/`));
 }
 
 async function getMaxEp(siteId, source) {
@@ -972,7 +976,7 @@ async function main() {
   await processAllAnime(content, { dryRun });
 }
 
-module.exports = { searchSite, parseFolderName, applyTemplate, validName, resolveFolderName, resolveFileName, renameFolder, safeRenameFolder, getEpisodeFileMatcher, countEpisodeFiles, findEpisodeFile, planDownloadRange, findMissingEps, resolveDownloadedStart, computeNewEnd, filterRowsByResults, withoutSkippedEps, getBase, resetBaseCache, engineChain, getCsvPath, getFfmpegPath, getAria2Path, getFfmpegTempPath, formatLogTime, isIdmRunning, ensureIdmMinimized, idmHasActivity, closeIdmIfIdle, blocked, progress, getMaxEp, getPlayUrl, callIdm, callFfmpeg, callAria2, fetchText, runPool, processOneAnime, processAllAnime, waitForFile, downloadEpisode, findFolder, findFolderByTitle, normalizeTime, syncTask, readTaskState, writeCsv };
+module.exports = { searchSite, parseHomeUpdateTimes, parseFolderName, applyTemplate, validName, resolveFolderName, resolveFileName, renameFolder, safeRenameFolder, getEpisodeFileMatcher, countEpisodeFiles, findEpisodeFile, planDownloadRange, findMissingEps, resolveDownloadedStart, computeNewEnd, filterRowsByResults, withoutSkippedEps, getBase, resetBaseCache, engineChain, getCsvPath, getFfmpegPath, getAria2Path, getFfmpegTempPath, formatLogTime, isIdmRunning, ensureIdmMinimized, idmHasActivity, closeIdmIfIdle, blocked, progress, getMaxEp, getPlayUrl, callIdm, callFfmpeg, callAria2, fetchText, runPool, processOneAnime, processAllAnime, waitForFile, downloadEpisode, findFolder, findFolderByTitle, normalizeTime, syncTask, readTaskState, writeCsv };
 
 if (require.main === module) {
   main().catch(e => {
