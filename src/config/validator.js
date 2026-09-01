@@ -47,6 +47,13 @@ function validateConfig(config) {
     errors.base_url = '必须是 http(s) 开头的 URL 或留空';
   }
 
+  if (!empty(config.download_dir)) {
+    const value = typeof config.download_dir === 'string' ? config.download_dir.trim() : '';
+    if (!value || !/^(?:[A-Za-z]:[\\/]|\\\\)/.test(value) || /[\0]/.test(value)) {
+      errors.download_dir = '必须是绝对 Windows 路径（如 D:\\视频）或留空';
+    }
+  }
+
   const defaults = config.defaults;
   if (defaults !== undefined && defaults !== null) {
     if (typeof defaults !== 'object' || Array.isArray(defaults)) {

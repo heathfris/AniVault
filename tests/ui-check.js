@@ -41,6 +41,11 @@ check('存在空状态文案', () => {
   assert.ok(rendererJs.includes('暂无追番，点击右上角添加番剧'), '缺少空状态文案');
 });
 
+check('下载目录配置体现 AGE_DLOAD', () => {
+  assert.ok(html.includes('id="download_dir"'), '缺少 download_dir 输入框');
+  assert.ok(rendererJs.includes('downloadDirSource'), '缺少生效来源提示');
+});
+
 check('.log 有固定高度', () => {
   const start = styles.indexOf('.log {');
   assert.ok(start >= 0, '缺少 .log 规则');

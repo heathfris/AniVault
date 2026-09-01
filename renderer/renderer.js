@@ -86,6 +86,7 @@ function createCard(title, item, expanded = false) {
 function render() {
   $('fetch_time').value = state.config.fetch_time || '';
   $('base_url').value = state.config.base_url || '';
+  $('download_dir').value = state.config.download_dir || '';
   $('max_download').value = state.config.defaults?.max_download ?? '';
   $('max_parallel').value = state.config.defaults?.max_parallel ?? 1;
   $('download_engine').value = state.config.defaults?.download_engine || 'aria2';
@@ -110,6 +111,7 @@ function collectConfig() {
   const cfg = {
     fetch_time: $('fetch_time').value.trim(),
     base_url: $('base_url').value.trim(),
+    download_dir: strOrNull($('download_dir').value.trim()),
     defaults: {
       max_download: numberOrNull($('max_download').value),
       max_parallel: numberOrNull($('max_parallel').value),
@@ -154,7 +156,7 @@ function clearErrors() {
 function renderErrors(errors) {
   clearErrors();
   for (const [key, msg] of Object.entries(errors || {})) {
-    if (key === '_root' || key === 'anime' || key.startsWith('defaults') || key === 'fetch_time') {
+    if (key === '_root' || key === 'anime' || key.startsWith('defaults') || key === 'fetch_time' || key === 'base_url' || key === 'download_dir') {
       const div = document.createElement('div');
       div.textContent = key + ': ' + msg;
       $('global-errors').appendChild(div);
@@ -238,6 +240,7 @@ async function save() {
     }
     state.config = back.data;
     render();
+    loadEnv();
     let msg = '已保存并回读一致';
     if (r.schedule) {
       if (r.schedule.ok) {
@@ -380,7 +383,7 @@ async function deleteRow(title, ep) {
 async function loadEnv() {
   const info = await window.anivault.envInfo();
   $('env-info').textContent = [
-    '下载目录: ' + info.downloadDir,
+    '下载目录: ' + info.downloadDir + '（来源: ' + (info.downloadDirSource || '未知') + '）',
     '脚本: ' + info.script,
     '配置: ' + info.content,
     '日志: ' + info.progress,
@@ -389,6 +392,7 @@ async function loadEnv() {
     '运行时: ' + info.node,
     'Electron: ' + info.electron + ' / Node: ' + info.nodeVersion,
   ].join('\n');
+  $('download-dir-effective').textContent = '当前生效: ' + info.downloadDir + (info.downloadDirSource === 'AGE_DLOAD' ? '（环境变量优先）' : '');
 }
 
 async function startRun(mode) {

@@ -271,6 +271,14 @@ test('base_url http(s) 与空通过', () => {
   }
 });
 
+test('download_dir 只接受绝对 Windows 路径或留空', () => {
+  let c = valid();
+  c.download_dir = 'D:\\视频';
+  assert.equal(validateConfig(c).ok, true);
+  c.download_dir = 'relative\\视频';
+  assert.ok(validateConfig(c).errors.download_dir);
+});
+
 let passed = 0;
 Promise.resolve()
   .then(async () => {

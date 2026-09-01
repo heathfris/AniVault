@@ -5,6 +5,7 @@ AGE 动漫自动追更下载器的新桌面面板：查看/修改/保存配置�
 ## 能做什么（当前范围）
 
 - 全局设置与追番清单增删改查，保存前逐字段校验、原子写盘、未知字段保留
+- 下载目录可在面板“下载目录（AGE_DLOAD）”中配置，环境变量 `AGE_DLOAD` 存在时优先；留空使用 `D:\\idm下载`
 - 运行控制：Dry-run 检查更新 / 立即下载 / 停止，单实例锁防重复任务
 - 下载引擎可切换：`defaults.download_engine`（aria2 / idm / ffmpeg，默认 aria2），面板下拉选择；MP4 所选引擎优先，失败按 aria2→ffmpeg→idm 兜底；M3U8 只用 ffmpeg/aria2（永不走 IDM）；IDM 仅面板交互模式生效
 - 并发下载：`defaults.max_parallel`（默认 1，范围 1-10，推荐 3），缺失集按并发池下载

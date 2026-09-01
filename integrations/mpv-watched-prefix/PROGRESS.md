@@ -104,3 +104,9 @@
 - `pnpm test`退出0；UI静态检查15/15、0失败、0跳过。
 - 本机真实部署目标`F:\Backend\mpv.lite\portable_config\scripts\anivault-watched.lua`仍不存在，确认本轮没有安装。
 - 事务日志现会在脚本、配置、安装记录和启停标志每一步后更新phase；专项管理器5/5和最终`pnpm test`再次退出0。
+
+## 2026-09-01 AGE_DLOAD 面板配置
+
+- 全局设置新增下载目录输入框，配置写入 `content.json` 的 `download_dir`；环境变量 `AGE_DLOAD` 继续优先，并在面板显示当前生效路径和来源。
+- updater、Electron 主进程和配置校验已统一该优先级；新增路径校验、配置优先级测试和 UI 静态检查。
+- `pnpm test` 退出0（33个Node子测试、36项配置检查、16项UI检查均通过）。

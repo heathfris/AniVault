@@ -58,7 +58,17 @@ function updaterScript() {
 }
 
 function downloadDir() {
-  return process.env.AGE_DLOAD || 'D:\\idm下载';
+  if (process.env.AGE_DLOAD) return process.env.AGE_DLOAD;
+  const cfg = readConfig(configFile());
+  const configured = cfg.ok && typeof cfg.data.download_dir === 'string' ? cfg.data.download_dir.trim() : '';
+  return configured || 'D:\\idm下载';
+}
+
+function downloadDirSource() {
+  if (process.env.AGE_DLOAD) return 'AGE_DLOAD';
+  const cfg = readConfig(configFile());
+  return cfg.ok && typeof cfg.data.download_dir === 'string' && cfg.data.download_dir.trim()
+    ? 'content.json' : '默认值';
 }
 
 function readConfig(file) {
@@ -377,6 +387,7 @@ function registerIpc() {
     csv: csvFile(),
     lock: lockFile(),
     downloadDir: downloadDir(),
+    downloadDirSource: downloadDirSource(),
     node: process.execPath,
     electron: process.versions.electron,
     nodeVersion: process.versions.node,
