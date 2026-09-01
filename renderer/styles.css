@@ -119,6 +119,7 @@ label {
 }
 
 input[type="text"],
+input:not([type]),
 input[type="number"],
 select {
   width: 100%;

@@ -66,7 +66,7 @@ function createCard(title, item, expanded = false) {
       <label>视频文件命名模板
         <input class="f-file_name" value="${escapeHtml(item.file_name ?? '')}">
       </label>
-      <label>永久跳过集数（逗号分隔，留空 = 不跳过）
+      <label>永久跳过集数（逗号分隔）
         <input class="f-skip_eps" value="${Array.isArray(item.skip_eps) ? escapeHtml(item.skip_eps.join(',')) : ''}">
       </label>
     </div>

@@ -25,6 +25,7 @@ check('input/select 统一控件规则存在', () => {
   const start = styles.indexOf('input[type="text"],');
   assert.ok(start >= 0, '缺少统一选择器 input[type="text"],');
   const block = styles.slice(start, start + 800);
+  assert.ok(block.includes('input:not([type]),'), '未覆盖省略type的文本输入框');
   assert.ok(block.includes('input[type="number"],'), '缺少 input[type="number"],');
   assert.ok(block.includes('select {'), '缺少 select {');
   assert.ok(block.includes('height: 30px'), '缺少 height: 30px');
@@ -135,7 +136,7 @@ check('番剧详情显示八个中文标签且保留内部字段名', () => {
   for (const label of [
     'AGE站内编号', '每周更新时间', '已下载起始集', '已下载至第几集',
     '站内最新集', '文件夹命名模板', '视频文件命名模板',
-    '永久跳过集数（逗号分隔，留空 = 不跳过）',
+    '永久跳过集数（逗号分隔）',
   ]) assert.ok(rendererJs.includes(label), `缺少中文标签：${label}`);
   for (const key of [
     'f-site_id', 'f-update_time', 'f-downloaded_start', 'f-downloaded_end',
