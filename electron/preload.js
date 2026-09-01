@@ -11,6 +11,8 @@ contextBridge.exposeInMainWorld('anivault', {
   runStatus: () => ipcRenderer.invoke('run:status'),
   logTail: (n) => ipcRenderer.invoke('log:tail', n),
   csvRead: () => ipcRenderer.invoke('csv:read'),
+  csvSkip: (payload) => ipcRenderer.invoke('csv:skip', payload),
+  csvRemove: (payload) => ipcRenderer.invoke('csv:remove', payload),
   envInfo: () => ipcRenderer.invoke('env:info'),
   openDownloadDir: () => ipcRenderer.invoke('shell:open-download-dir'),
   mpvSyncStatus: (mpvRoot) => ipcRenderer.invoke('mpv-sync:status', mpvRoot),

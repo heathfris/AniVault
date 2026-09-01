@@ -117,6 +117,37 @@ check('folder_name界面提示watched是单番启用开关', () => {
   assert.ok(rendererJs.includes('{watched}'), 'folder_name缺少{watched}提示');
 });
 
+check('待下载清单的跳过和删除使用不同接口', () => {
+  const preload = fs.readFileSync(path.join(root, 'electron', 'preload.js'), 'utf8');
+  const main = fs.readFileSync(path.join(root, 'electron', 'main.js'), 'utf8');
+  assert.ok(rendererJs.includes("textContent = '跳过此集'"), '缺少“跳过此集”按钮');
+  assert.ok(rendererJs.includes("textContent = '删除'"), '缺少清单“删除”按钮');
+  assert.ok(rendererJs.includes('window.anivault.csvSkip'), '跳过按钮未使用csvSkip');
+  assert.ok(rendererJs.includes('window.anivault.csvRemove'), '删除按钮未使用csvRemove');
+  assert.ok(preload.includes("ipcRenderer.invoke('csv:skip'"), 'preload未公开csv:skip');
+  assert.ok(preload.includes("ipcRenderer.invoke('csv:remove'"), 'preload未公开csv:remove');
+  assert.ok(main.includes("ipcMain.handle('csv:skip'"), 'main未处理csv:skip');
+  assert.ok(main.includes("ipcMain.handle('csv:remove'"), 'main未处理csv:remove');
+  assert.ok(rendererJs.includes('class="del danger"'), '整部番剧删除按钮被移除');
+});
+
+check('番剧详情显示八个中文标签且保留内部字段名', () => {
+  for (const label of [
+    'AGE站内编号', '每周更新时间', '已下载起始集', '已下载至第几集',
+    '站内最新集', '文件夹命名模板', '视频文件命名模板',
+    '永久跳过集数（逗号分隔，留空 = 不跳过）',
+  ]) assert.ok(rendererJs.includes(label), `缺少中文标签：${label}`);
+  for (const key of [
+    'f-site_id', 'f-update_time', 'f-downloaded_start', 'f-downloaded_end',
+    'f-site_latest', 'f-folder_name', 'f-file_name', 'f-skip_eps',
+  ]) assert.ok(rendererJs.includes(key), `内部字段标识被移除：${key}`);
+  for (const english of [
+    '<label>site_id', '<label>update_time', '<label>downloaded_start',
+    '<label>downloaded_end', '<label>site_latest', '<label>folder_name',
+    '<label>file_name', '<label>skip_eps',
+  ]) assert.ok(!rendererJs.includes(english), `仍显示英文标签：${english}`);
+});
+
 let passed = 0;
 for (const c of checks) {
   try {

@@ -44,29 +44,29 @@ function createCard(title, item, expanded = false) {
       <button class="del danger">删除</button>
     </div>
     <div class="fields">
-      <label>site_id
+      <label>AGE站内编号
         <input class="f-site_id" type="number" step="1" value="${item.site_id ?? ''}">
       </label>
-      <label>update_time
+      <label>每周更新时间
         <input class="f-update_time" placeholder="HH:MM" value="${escapeHtml(item.update_time ?? '')}">
       </label>
-      <label>downloaded_start
+      <label>已下载起始集
         <input class="f-downloaded_start" type="number" step="1" value="${item.downloaded_start ?? ''}">
       </label>
-      <label>downloaded_end
+      <label>已下载至第几集
         <input class="f-downloaded_end" type="number" step="1" value="${item.downloaded_end ?? ''}">
       </label>
-      <label>site_latest
+      <label>站内最新集
         <input class="f-site_latest" type="number" step="1" value="${item.site_latest ?? ''}">
       </label>
-      <label>folder_name
+      <label>文件夹命名模板
         <input class="f-folder_name" value="${escapeHtml(item.folder_name ?? '')}">
         <span class="hint">加入一个 {watched} 才启用观看前缀，例如 {watched}_{name}{start}-{end}</span>
       </label>
-      <label>file_name
+      <label>视频文件命名模板
         <input class="f-file_name" value="${escapeHtml(item.file_name ?? '')}">
       </label>
-      <label>skip_eps（逗号分隔，留空 = 无）
+      <label>永久跳过集数（逗号分隔，留空 = 不跳过）
         <input class="f-skip_eps" value="${Array.isArray(item.skip_eps) ? escapeHtml(item.skip_eps.join(',')) : ''}">
       </label>
     </div>
@@ -347,9 +347,14 @@ async function refreshCsv() {
       tr.appendChild(td);
     }
     const tdOp = document.createElement('td');
+    const skipBtn = document.createElement('button');
+    skipBtn.textContent = '跳过此集';
+    skipBtn.addEventListener('click', () => skipRow(row.title, row.ep));
+    tdOp.appendChild(skipBtn);
     const delBtn = document.createElement('button');
     delBtn.textContent = '删除';
-    delBtn.addEventListener('click', () => deleteRow(row.title, row.ep));
+    delBtn.className = 'danger';
+    delBtn.addEventListener('click', () => removeRow(row.title, row.ep));
     tdOp.appendChild(delBtn);
     tr.appendChild(tdOp);
     tbody.appendChild(tr);
@@ -364,20 +369,20 @@ async function refreshCsv() {
   }
 }
 
-async function deleteRow(title, ep) {
-  const r = await window.anivault.readConfig();
-  if (!r.ok) return;
-  const info = r.data.anime && r.data.anime[title];
-  if (!info) return;
-  const skip = Array.isArray(info.skip_eps) ? info.skip_eps.filter(x => Number.isInteger(x) && x > 0) : [];
-  if (!skip.includes(ep)) skip.push(ep);
-  skip.sort((a, b) => a - b);
-  info.skip_eps = skip;
-  const s = await window.anivault.saveConfig(r.data);
-  if (s.ok) {
+async function skipRow(title, ep) {
+  const r = await window.anivault.csvSkip({ title, ep });
+  if (r.ok) {
     refreshCsv();
     load();
+  } else {
+    window.alert('跳过失败：' + r.error);
   }
+}
+
+async function removeRow(title, ep) {
+  const r = await window.anivault.csvRemove({ title, ep });
+  if (r.ok) refreshCsv();
+  else window.alert(r.error);
 }
 
 async function loadEnv() {

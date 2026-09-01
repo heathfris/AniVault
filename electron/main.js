@@ -7,7 +7,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { validateConfig } = require('../src/config/validator.js');
 const { createRunner } = require('../src/runner.js');
-const { readCsv } = require('../src/csv.js');
+const { readCsv, removeCsvRow } = require('../src/csv.js');
 const { tailFileFast } = require('../src/logutil.js');
 const { syncSchedule, queryTask, TASK_NAME } = require('../src/schedule.js');
 const { countEpisodeFiles, findFolder } = require('../anime_updater.js');
@@ -357,7 +357,7 @@ function registerIpc() {
       return { ok: false, error: e.message, rows: [], summaries: {} };
     }
   });
-  ipcMain.handle('csv:delete', (_e, payload) => {
+  ipcMain.handle('csv:skip', (_e, payload) => {
     const title = payload && payload.title;
     const ep = payload && payload.ep;
     if (typeof title !== 'string' || !Number.isInteger(ep) || ep <= 0) {
@@ -378,6 +378,19 @@ function registerIpc() {
       return { ok: true };
     } catch (e) {
       return { ok: false, error: '写入失败: ' + e.message };
+    }
+  });
+  ipcMain.handle('csv:remove', (_e, payload) => {
+    const title = payload && payload.title;
+    const ep = payload && payload.ep;
+    if (typeof title !== 'string' || !Number.isInteger(ep) || ep <= 0) {
+      return { ok: false, error: '参数不合法' };
+    }
+    try {
+      removeCsvRow(csvFile(), title, ep);
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: '删除失败: ' + e.message };
     }
   });
   ipcMain.handle('env:info', () => ({
