@@ -1,4 +1,4 @@
-# 番仓 AniVault（0.10.0）
+# 番仓 AniVault（0.10.1）
 
 AGE 动漫自动追更下载器的新桌面面板：查看/修改/保存配置，触发 dry-run 或下载、停止运行、看实时日志与待下载清单、打开下载目录。0.3.0 起下载引擎改为 aria2。
 
@@ -10,6 +10,7 @@ AGE 动漫自动追更下载器的新桌面面板：查看/修改/保存配置�
 - 下载引擎可切换：`defaults.download_engine`（aria2 / idm / ffmpeg，默认 aria2），面板下拉选择；MP4 所选引擎优先，失败按 aria2→ffmpeg→idm 兜底；M3U8 只用 ffmpeg/aria2（永不走 IDM）；IDM 仅面板交互模式生效
 - 并发下载：`defaults.max_parallel`（默认 1，范围 1-10，推荐 3），缺失集按并发池下载
 - 部分成功也推进进度：`downloaded_end` 更新为原 end 与本次成功/已存在集最高编号的较大值；失败集留待 `auto_repair` 自动补下
+- 下载完成改名遇到 Windows 临时占用时自动重试；再次运行会从 `.part.mp4` 中复用时长完整的候选，明显短于上一集的残缺视频不会推进进度
 - 单次下载等待可配置：`defaults.attempt_timeout_min`（默认 20，范围 5-60，替代固定 45 分钟），只作用于等待文件稳定阶段
 - 网络健壮性：请求 30 秒超时、`Connection: close`、fetch 失败自动重试 1 次（间隔 3 秒，超时不重试）；站点可由 `AGE_BASE` 覆盖（默认 https://www.agedm.io）；首页失败记 BLOCKED 后继续，单部番失败记 BLOCKED 后继续下一部，不再中断整个运行
 - 清单保护：查询全部失败且本运行 0 行时保留上次待下载清单；有行才写新清单
@@ -66,4 +67,4 @@ pnpm run smoke      # 打开窗口，加载成功打印 SMOKE_OK 并退出 0
 pnpm run selftest   # 配置临时副本读写 + 假脚本运行端到端，打印 SELFTEST_OK
 ```
 
-当前版本 0.10.0，版本记录见使用说明.md 文末。mpv模块源码和专项说明见 `integrations/mpv-watched-prefix/`；本次开发未自动安装到本机mpv。
+当前版本 0.10.1，版本记录见使用说明.md 文末。mpv模块源码和专项说明见 `integrations/mpv-watched-prefix/`；本次开发未自动安装到本机mpv。
