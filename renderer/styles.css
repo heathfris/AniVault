@@ -303,6 +303,21 @@ button.danger:hover:not(:disabled) {
   grid-column: 1 / -1;
 }
 
+#mpv-sync {
+  grid-column: 1 / -1;
+}
+
+.mpv-sync-row {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) auto;
+  gap: var(--space-3);
+  align-items: end;
+}
+
+.mpv-sync-row .run-buttons {
+  margin-bottom: 0;
+}
+
 .run-buttons {
   display: flex;
   gap: var(--space-2);
@@ -476,6 +491,14 @@ footer {
 
   #run {
     grid-column: auto;
+  }
+
+  #mpv-sync {
+    grid-column: auto;
+  }
+
+  .mpv-sync-row {
+    grid-template-columns: 1fr;
   }
 
   .run-columns {

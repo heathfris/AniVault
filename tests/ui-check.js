@@ -98,6 +98,20 @@ check('截图脚本包含 Viz 兼容参数', () => {
   assert.ok(pkg.scripts.screenshot.includes('--user-data-dir=local/screenshot-profile'), '缺少独立截图 profile');
 });
 
+check('mpv观看同步卡片和五个操作入口存在', () => {
+  assert.ok(html.includes('id="mpv-sync"'), '缺少mpv观看同步卡片');
+  for (const id of ['mpv-sync-check', 'mpv-sync-install', 'mpv-sync-toggle', 'mpv-sync-update', 'mpv-sync-uninstall']) {
+    assert.ok(html.includes(`id="${id}"`), `缺少${id}`);
+  }
+  for (const method of ['mpvSyncStatus', 'mpvSyncInstall', 'mpvSyncUpdate', 'mpvSyncSetEnabled', 'mpvSyncUninstall']) {
+    assert.ok(rendererJs.includes(`window.anivault.${method}`), `renderer缺少${method}`);
+  }
+});
+
+check('folder_name界面提示watched是单番启用开关', () => {
+  assert.ok(rendererJs.includes('{watched}'), 'folder_name缺少{watched}提示');
+});
+
 let passed = 0;
 for (const c of checks) {
   try {

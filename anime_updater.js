@@ -10,6 +10,7 @@ try {
   ({ chromium } = require('C:/Users/15269/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright-core'));
 }
 const { appendRotated } = require('./src/logutil.js');
+const { acquireFolderRenameLock } = require('./src/folder-rename-lock.js');
 
 const WORK = __dirname;
 const EDGE = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
@@ -51,6 +52,7 @@ const CSV = getCsvPath();
 const PROGRESS = process.env.AGE_PROGRESS || path.join(WORK, 'PROGRESS.md');
 const BLOCKED = process.env.AGE_BLOCKED || path.join(WORK, 'BLOCKED.md');
 const TASK_STATE = process.env.AGE_TASK_STATE || path.join(WORK, 'task_state.json');
+const FOLDER_RENAME_LOCK = process.env.AGE_FOLDER_RENAME_LOCK || path.join(WORK, 'local', 'mpv-watched-prefix', 'folder-rename.lock');
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
 const MIN_SIZE = 100 * 1024 * 1024;
 const STABLE_MS = 120 * 1000;
@@ -165,7 +167,35 @@ function applyTemplate(tpl, vars) {
     .replace(/\{name\}/g, String(vars.name))
     .replace(/\{start\}/g, String(vars.start))
     .replace(/\{end\}/g, String(vars.end))
-    .replace(/\{ep\}/g, String(vars.ep).padStart(2, '0'));
+    .replace(/\{ep\}/g, String(vars.ep).padStart(2, '0'))
+    .replace(/\{watched\}/g, String(vars.watched ?? 0));
+}
+
+function matchFolderTemplate(tpl, folderName, title) {
+  if (typeof tpl !== 'string' || typeof folderName !== 'string' || typeof title !== 'string') return null;
+  const tokens = [];
+  const marker = /\{(name|start|end|ep|watched)\}/g;
+  const esc = value => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  let pattern = '^';
+  let cursor = 0;
+  let match;
+  while ((match = marker.exec(tpl))) {
+    pattern += esc(tpl.slice(cursor, match.index));
+    if (match[1] === 'name') pattern += esc(title);
+    else {
+      pattern += '(\\d+)';
+      tokens.push(match[1]);
+    }
+    cursor = match.index + match[0].length;
+  }
+  pattern += esc(tpl.slice(cursor)) + '$';
+  let values;
+  try { values = folderName.match(new RegExp(pattern)); } catch (e) { return null; }
+  if (!values) return null;
+  const result = { name: title };
+  tokens.forEach((token, index) => { result[token] = parseInt(values[index + 1], 10); });
+  if (result.end !== undefined && result.ep === undefined) result.ep = result.end;
+  return result;
 }
 
 function validName(name) {
@@ -175,7 +205,8 @@ function validName(name) {
 function resolveFolderName(anime, folderInfo, end) {
   const start = (anime.downloaded_start !== undefined && anime.downloaded_start !== null) ? anime.downloaded_start : 0;
   if (anime.folder_name) {
-    const name = applyTemplate(anime.folder_name, { name: anime.title, start, end, ep: end });
+    const watched = folderInfo && Number.isInteger(folderInfo.watched) ? folderInfo.watched : 0;
+    const name = applyTemplate(anime.folder_name, { name: anime.title, start, end, ep: end, watched });
     if (!validName(name)) return { name: null, error: `folder_name 模板生成非法文件夹名: ${name}` };
     return { name, error: null };
   }
@@ -467,9 +498,7 @@ async function runPool(items, worker, poolSize) {
 }
 
 function renameFolder(oldPath, newPath) {
-  const cmd = `Move-Item -LiteralPath '${oldPath}' -Destination '${newPath}'`;
-  const r = spawnSync('powershell.exe', ['-NoProfile', '-Command', cmd], { encoding: 'utf8', windowsHide: true });
-  if (r.status !== 0) throw new Error('改名失败: ' + (r.stderr || r.stdout || ''));
+  fs.renameSync(oldPath, newPath);
 }
 
 function findFolderByTitle(title) {
@@ -487,13 +516,23 @@ function findFolderByTitle(title) {
 
 function findFolder(anime) {
   if (anime.folder_name) {
-    const cur = resolveFolderName(anime, null, anime.downloaded_end || 0);
-    if (cur.name) {
-      let dirs;
-      try { dirs = fs.readdirSync(DLOAD, { withFileTypes: true }).filter(d => d.isDirectory()); } catch (e) { dirs = []; }
-      const hit = dirs.find(d => d.name === cur.name);
-      if (hit) return { dir: path.join(DLOAD, hit.name), prefix: '', title: anime.title, start: anime.downloaded_start || 0, end: anime.downloaded_end || 0, name: hit.name };
+    let dirs;
+    try { dirs = fs.readdirSync(DLOAD, { withFileTypes: true }).filter(d => d.isDirectory()); } catch (e) { dirs = []; }
+    const hits = dirs.map(d => ({ dirent: d, values: matchFolderTemplate(anime.folder_name, d.name, anime.title) })).filter(x => x.values);
+    if (hits.length > 1) throw new Error(`${anime.title}: folder_name 匹配到多个目录，拒绝猜测`);
+    if (hits.length === 1) {
+      const hit = hits[0];
+      return Object.assign({
+        dir: path.join(DLOAD, hit.dirent.name),
+        prefix: '',
+        title: anime.title,
+        name: hit.dirent.name,
+      }, hit.values);
     }
+    if ((anime.folder_name.match(/\{watched\}/g) || []).length === 1 && findFolderByTitle(anime.title)) {
+      throw new Error(`${anime.title}: 检测到旧目录但新模板尚未匹配，请先dry-run核对并手动迁移`);
+    }
+    return null;
   }
   return findFolderByTitle(anime.title);
 }
@@ -562,12 +601,17 @@ function findEpisodeFile(dir, anime, ep) {
 
 function safeRenameFolder(oldPath, newPath) {
   if (oldPath === newPath) return { ok: true, error: null };
-  if (fs.existsSync(newPath)) return { ok: false, error: `目标文件夹已存在: ${path.basename(newPath)}` };
+  const lock = acquireFolderRenameLock({ lockPath: FOLDER_RENAME_LOCK, actor: 'anime-updater' });
+  if (!lock.ok) return { ok: false, error: `文件夹改名锁不可用: ${lock.reason}` };
   try {
+    if (!fs.existsSync(oldPath)) return { ok: false, error: `原文件夹不存在: ${path.basename(oldPath)}` };
+    if (fs.existsSync(newPath)) return { ok: false, error: `目标文件夹已存在: ${path.basename(newPath)}` };
     renameFolder(oldPath, newPath);
     return { ok: true, error: null };
   } catch (e) {
     return { ok: false, error: e.message };
+  } finally {
+    lock.release();
   }
 }
 
@@ -976,7 +1020,7 @@ async function main() {
   await processAllAnime(content, { dryRun });
 }
 
-module.exports = { searchSite, parseHomeUpdateTimes, parseFolderName, applyTemplate, validName, resolveFolderName, resolveFileName, renameFolder, safeRenameFolder, getEpisodeFileMatcher, countEpisodeFiles, findEpisodeFile, planDownloadRange, findMissingEps, resolveDownloadedStart, computeNewEnd, filterRowsByResults, withoutSkippedEps, getBase, resetBaseCache, engineChain, getCsvPath, getFfmpegPath, getAria2Path, getFfmpegTempPath, formatLogTime, isIdmRunning, ensureIdmMinimized, idmHasActivity, closeIdmIfIdle, blocked, progress, getMaxEp, getPlayUrl, callIdm, callFfmpeg, callAria2, fetchText, runPool, processOneAnime, processAllAnime, waitForFile, downloadEpisode, findFolder, findFolderByTitle, normalizeTime, syncTask, readTaskState, writeCsv };
+module.exports = { searchSite, parseHomeUpdateTimes, parseFolderName, applyTemplate, matchFolderTemplate, validName, resolveFolderName, resolveFileName, renameFolder, safeRenameFolder, getEpisodeFileMatcher, countEpisodeFiles, findEpisodeFile, planDownloadRange, findMissingEps, resolveDownloadedStart, computeNewEnd, filterRowsByResults, withoutSkippedEps, getBase, resetBaseCache, engineChain, getCsvPath, getFfmpegPath, getAria2Path, getFfmpegTempPath, formatLogTime, isIdmRunning, ensureIdmMinimized, idmHasActivity, closeIdmIfIdle, blocked, progress, getMaxEp, getPlayUrl, callIdm, callFfmpeg, callAria2, fetchText, runPool, processOneAnime, processAllAnime, waitForFile, downloadEpisode, findFolder, findFolderByTitle, normalizeTime, syncTask, readTaskState, writeCsv };
 
 if (require.main === module) {
   main().catch(e => {

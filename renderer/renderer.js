@@ -8,6 +8,7 @@ const state = {
   logProgress: [],
   logPinned: true,
   episodes: [],
+  mpvSync: null,
 };
 
 function $(id) { return document.getElementById(id); }
@@ -60,6 +61,7 @@ function createCard(title, item, expanded = false) {
       </label>
       <label>folder_name
         <input class="f-folder_name" value="${escapeHtml(item.folder_name ?? '')}">
+        <span class="hint">加入一个 {watched} 才启用观看前缀，例如 {watched}_{name}{start}-{end}</span>
       </label>
       <label>file_name
         <input class="f-file_name" value="${escapeHtml(item.file_name ?? '')}">
@@ -186,6 +188,41 @@ async function load() {
   $('status').textContent = '已连接';
   loadEnv();
   refreshCsv();
+  refreshMpvSync();
+}
+
+function renderMpvSync(result) {
+  const status = result && result.status;
+  state.mpvSync = status || null;
+  const labels = {
+    'not-installed': '未安装', disabled: '已安装 · 已停用', enabled: '已安装 · 已启用',
+    'update-available': '需要更新', 'external-change': '外部改动', 'path-error': '路径异常',
+  };
+  $('mpv-sync-state').textContent = status ? (labels[status.state] || status.state) : '检查失败';
+  if (status && status.mpvRoot) $('mpv-sync-root').value = status.mpvRoot;
+  $('mpv-sync-message').textContent = (result && result.error) || (status && status.reason) || '';
+  const current = status ? status.state : 'path-error';
+  $('mpv-sync-install').disabled = current !== 'not-installed';
+  $('mpv-sync-toggle').disabled = !['disabled', 'enabled', 'update-available'].includes(current);
+  $('mpv-sync-toggle').textContent = status && status.enabled ? '停用' : '启用';
+  $('mpv-sync-update').disabled = current !== 'update-available';
+  $('mpv-sync-uninstall').disabled = !['disabled', 'enabled', 'update-available'].includes(current);
+}
+
+async function refreshMpvSync() {
+  const root = $('mpv-sync-root').value.trim();
+  renderMpvSync(await window.anivault.mpvSyncStatus(root || undefined));
+}
+
+async function runMpvSync(action) {
+  $('mpv-sync-message').textContent = '处理中…';
+  let result;
+  if (action === 'install') result = await window.anivault.mpvSyncInstall($('mpv-sync-root').value.trim());
+  else if (action === 'update') result = await window.anivault.mpvSyncUpdate();
+  else if (action === 'toggle') result = await window.anivault.mpvSyncSetEnabled(!(state.mpvSync && state.mpvSync.enabled));
+  else result = await window.anivault.mpvSyncUninstall();
+  renderMpvSync(result);
+  if (result.ok && !$('mpv-sync-message').textContent) $('mpv-sync-message').textContent = '操作完成；启停在下次启动 mpv 时生效。';
 }
 
 async function save() {
@@ -381,6 +418,11 @@ $('stop-run').addEventListener('click', async () => {
 });
 $('open-download').addEventListener('click', () => window.anivault.openDownloadDir());
 $('csv-refresh').addEventListener('click', refreshCsv);
+$('mpv-sync-check').addEventListener('click', refreshMpvSync);
+$('mpv-sync-install').addEventListener('click', () => runMpvSync('install'));
+$('mpv-sync-toggle').addEventListener('click', () => runMpvSync('toggle'));
+$('mpv-sync-update').addEventListener('click', () => runMpvSync('update'));
+$('mpv-sync-uninstall').addEventListener('click', () => runMpvSync('uninstall'));
 $('log-area').addEventListener('scroll', () => {
   const area = $('log-area');
   state.logPinned = area.scrollTop + area.clientHeight >= area.scrollHeight - 4;

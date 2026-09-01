@@ -4,7 +4,8 @@ const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 const INT_RE = /^-?\d+$/;
 const ILLEGAL_NAME_RE = /[\/\\:*?"<>|]/;
 const PLACEHOLDER_RE = /\{([a-zA-Z]+)\}/g;
-const ALLOWED_PLACEHOLDERS = new Set(['name', 'ep', 'start', 'end']);
+const FILE_PLACEHOLDERS = new Set(['name', 'ep', 'start', 'end']);
+const FOLDER_PLACEHOLDERS = new Set(['name', 'ep', 'start', 'end', 'watched']);
 
 function empty(v) {
   return v === undefined || v === null || v === '';
@@ -106,10 +107,18 @@ function validateConfig(config) {
           }
           PLACEHOLDER_RE.lastIndex = 0;
           let m;
+          let watchedCount = 0;
+          const allowed = f === 'folder_name' ? FOLDER_PLACEHOLDERS : FILE_PLACEHOLDERS;
           while ((m = PLACEHOLDER_RE.exec(v))) {
-            if (!ALLOWED_PLACEHOLDERS.has(m[1])) {
-              errors[base + '.' + f] = '只允许 {name}{ep}{start}{end}';
+            if (m[1] === 'watched') watchedCount += 1;
+            if (!allowed.has(m[1])) {
+              errors[base + '.' + f] = f === 'folder_name'
+                ? '只允许 {name}{ep}{start}{end}{watched}'
+                : '只允许 {name}{ep}{start}{end}';
             }
+          }
+          if (f === 'folder_name' && watchedCount > 1) {
+            errors[base + '.' + f] = '{watched} 最多只能出现一次';
           }
         }
       }

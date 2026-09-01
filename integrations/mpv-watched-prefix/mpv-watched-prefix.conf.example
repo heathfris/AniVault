@@ -1,0 +1,4 @@
+# 番仓面板安装时会把以下三项写成当前机器的绝对路径。
+project_root=D:/project_codex/260814_animeinstall_auto
+node_path=C:/path/to/node.exe
+state_dir=D:/project_codex/260814_animeinstall_auto/local/mpv-watched-prefix

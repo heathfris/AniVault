@@ -12,6 +12,7 @@ const { tailFileFast } = require('../src/logutil.js');
 const { syncSchedule, queryTask, TASK_NAME } = require('../src/schedule.js');
 const { countEpisodeFiles, findFolder } = require('../anime_updater.js');
 const { summarize } = require('../src/summary.js');
+const { createManager: createMpvSyncManager } = require('../src/mpv-watched-prefix-manager.js');
 
 const SMOKE_TIMEOUT_MS = 30 * 1000;
 const RUN_LOG_CAP = 500;
@@ -21,9 +22,15 @@ let runLog = [];
 let lastExit = null;
 let episodes = [];
 let mainWindow = null;
+let mpvSyncManager = null;
 
 function appRoot() {
   return app.getAppPath();
+}
+
+function getMpvSyncManager() {
+  if (!mpvSyncManager) mpvSyncManager = createMpvSyncManager({ projectRoot: appRoot() });
+  return mpvSyncManager;
 }
 
 function configFile() {
@@ -378,6 +385,11 @@ function registerIpc() {
     const err = await shell.openPath(downloadDir());
     return { ok: !err, error: err || null };
   });
+  ipcMain.handle('mpv-sync:status', (_e, mpvRoot) => getMpvSyncManager().getStatus({ mpvRoot }));
+  ipcMain.handle('mpv-sync:install', (_e, mpvRoot) => getMpvSyncManager().install({ mpvRoot }));
+  ipcMain.handle('mpv-sync:update', () => getMpvSyncManager().update());
+  ipcMain.handle('mpv-sync:set-enabled', (_e, enabled) => getMpvSyncManager().setEnabled({ enabled }));
+  ipcMain.handle('mpv-sync:uninstall', () => getMpvSyncManager().uninstall());
 }
 
 app.whenReady().then(() => {

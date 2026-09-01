@@ -9,7 +9,7 @@
   <header>
     <h1>番仓 AniVault</h1>
     <span class="sub">AGE 动漫自动追更 · 配置面板</span>
-    <span class="version-badge">v0.9.4</span>
+    <span class="version-badge">v0.10.0</span>
     <span id="status" class="status"></span>
   </header>
   <main>
@@ -60,6 +60,28 @@
         <button id="add-anime">+ 添加番剧</button>
       </div>
       <div id="anime-list"></div>
+    </section>
+    <section id="mpv-sync">
+      <div class="section-head">
+        <div>
+          <h2>mpv 观看同步</h2>
+          <span class="hint">可选模块。安装后默认关闭；单部番剧还需在 folder_name 中加入一个 {watched}。</span>
+        </div>
+        <span id="mpv-sync-state" class="run-status">尚未检查</span>
+      </div>
+      <div class="mpv-sync-row">
+        <label>mpv 根目录
+          <input id="mpv-sync-root" type="text" placeholder="例如 F:\Backend\mpv.lite">
+        </label>
+        <div class="run-buttons">
+          <button id="mpv-sync-check">检查状态</button>
+          <button id="mpv-sync-install" class="primary">安装</button>
+          <button id="mpv-sync-toggle">启用</button>
+          <button id="mpv-sync-update">更新</button>
+          <button id="mpv-sync-uninstall" class="danger">卸载</button>
+        </div>
+      </div>
+      <div id="mpv-sync-message" class="hint"></div>
     </section>
     <section id="run">
       <h2>运行控制</h2>

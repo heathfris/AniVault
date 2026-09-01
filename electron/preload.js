@@ -13,4 +13,9 @@ contextBridge.exposeInMainWorld('anivault', {
   csvRead: () => ipcRenderer.invoke('csv:read'),
   envInfo: () => ipcRenderer.invoke('env:info'),
   openDownloadDir: () => ipcRenderer.invoke('shell:open-download-dir'),
+  mpvSyncStatus: (mpvRoot) => ipcRenderer.invoke('mpv-sync:status', mpvRoot),
+  mpvSyncInstall: (mpvRoot) => ipcRenderer.invoke('mpv-sync:install', mpvRoot),
+  mpvSyncUpdate: () => ipcRenderer.invoke('mpv-sync:update'),
+  mpvSyncSetEnabled: (enabled) => ipcRenderer.invoke('mpv-sync:set-enabled', enabled),
+  mpvSyncUninstall: () => ipcRenderer.invoke('mpv-sync:uninstall'),
 });
