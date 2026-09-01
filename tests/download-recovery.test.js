@@ -4,6 +4,10 @@ const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
 
+const logDir = fs.mkdtempSync(path.join(os.tmpdir(), 'anivault-recovery-logs-'));
+process.env.AGE_PROGRESS = path.join(logDir, 'PROGRESS.md');
+process.env.AGE_BLOCKED = path.join(logDir, 'BLOCKED.md');
+
 const updater = require('../anime_updater.js');
 
 test('文件被临时占用时重试改名', () => {
