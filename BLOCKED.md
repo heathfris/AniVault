@@ -1,6 +1,8 @@
 # BLOCKED
 
-当前无阻塞。以下内容是历史裁决与运行异常记录，不代表当前待办；仍未纳入当前范围的事项只有多站点、安装包和未获授权的重构。
+当前无开发阻塞。运行态仍需由下一次真实下载确认 `.part.mp4` 恢复与有限重试能消除现场 EPERM；mpv 仍缺一部长视频的双90%端到端记录。以下内容是历史裁决与运行异常记录，不代表当前待办；仍未纳入当前范围的事项只有多站点、安装包和未获授权的重构。
+
+2026-09-01 状态更新：0.4.0 时保留的“M3U8 先走 aria2”已在 0.10.2 纠正为直接使用 ffmpeg，因为本机 aria2 1.37.0 多次明确报 `unknown option -- hls-segment-threads=16`。以下旧裁决保留作历史证据。
 
 ## 番仓 AniVault 0.9.0 待裁决/范围外（2026-08-11）
 - content.json 的现有 enabled 改动（用户停用两部番）按拍板随本件提交，未额外修改。
@@ -116,3 +118,17 @@
 2026-08-10 18:34:18 BLOCKED: 擅长逃跑的殿下 第二季: fetch failed
 2026-08-10 19:17:11 BLOCKED: 擅长逃跑的殿下 第二季 第1集: 下载失败 线路5取址失败
 2026-08-10 19:17:11 BLOCKED: 擅长逃跑的殿下 第二季 第2集: 下载失败 线路5取址失败
+2026-08-20 16:59:26 BLOCKED: 穹庐下的魔女: fetch failed
+2026-08-20 16:59:30 BLOCKED: Re：从零开始的异世界生活 第四季 丧失篇: fetch failed
+2026-08-20 16:59:44 BLOCKED: 首页更新列表获取失败: fetch failed
+2026-08-20 16:59:48 BLOCKED: 尼古喵喵: fetch failed
+2026-08-20 16:59:52 BLOCKED: 感谢对战 大小姐才不玩格斗游戏: fetch failed
+2026-08-20 16:59:57 BLOCKED: 再见，拉拉: fetch failed
+2026-08-20 17:00:01 BLOCKED: 穹庐下的魔女: fetch failed
+2026-08-20 17:00:05 BLOCKED: Re：从零开始的异世界生活 第四季 丧失篇: fetch failed
+2026-08-27 18:05:49 BLOCKED: Re：从零开始的异世界生活 第四季 丧失篇 第14集: 下载失败 线路5取址失败
+2026-08-30 18:22:01 BLOCKED: 穹庐下的魔女 第10集: 下载失败 线路5 ffmpeg 失败 exit=1: 完成文件改名失败: EPERM: operation not permitted, rename 'D:\idm下载\8_穹庐下的魔女1-9\穹庐下的魔女 第10集 - 在线播放 - AGE动漫_L5.part.mp4' -> 'D:\idm下载\8_穹庐下的魔女1-9\穹庐下的魔女 第10集 - 在线播放 - AGE动漫_L5.mp4'
+2026-08-31 18:59:28 BLOCKED: 再见，拉拉 第9集: 下载失败 线路5 ffmpeg 失败 exit=1: 完成文件改名失败: EPERM: operation not permitted, rename 'D:\idm下载\8_再见，拉拉1-8\再见，拉拉 第09集 - 在线播放 - AGE动漫_L5.part.mp4' -> 'D:\idm下载\8_再见，拉拉1-8\再见，拉拉 第09集 - 在线播放 - AGE动漫_L5.mp4'
+2026-08-31 19:48:56 BLOCKED: 穹庐下的魔女 第10集: 下载失败 线路5 ffmpeg 失败 exit=1: 完成文件改名失败: EPERM: operation not permitted, rename 'D:\idm下载\8_穹庐下的魔女1-9\穹庐下的魔女 第10集 - 在线播放 - AGE动漫_L5.part.mp4' -> 'D:\idm下载\8_穹庐下的魔女1-9\穹庐下的魔女 第10集 - 在线播放 - AGE动漫_L5.mp4'
+2026-09-01 18:16:03 BLOCKED: 再见，拉拉 第9集: 下载失败 线路5 ffmpeg 失败 exit=1: 完成文件改名失败: EPERM: operation not permitted, rename 'D:\idm下载\8_再见，拉拉1-8\再见，拉拉 第09集 - 在线播放 - AGE动漫_L5.part.mp4' -> 'D:\idm下载\8_再见，拉拉1-8\再见，拉拉 第09集 - 在线播放 - AGE动漫_L5.mp4'
+2026-09-01 18:35:05 BLOCKED: 穹庐下的魔女 第10集: 下载失败 线路5 ffmpeg 失败 exit=1: 完成文件改名失败: EPERM: operation not permitted, rename 'D:\idm下载\8_穹庐下的魔女1-9\穹庐下的魔女 第10集 - 在线播放 - AGE动漫_L5.part.mp4' -> 'D:\idm下载\8_穹庐下的魔女1-9\穹庐下的魔女 第10集 - 在线播放 - AGE动漫_L5.mp4'

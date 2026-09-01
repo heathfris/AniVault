@@ -381,13 +381,12 @@ function callFfmpeg(url, folder, filename, headers = {}) {
   }
 }
 
-function callAria2(url, folder, filename, headers = {}, isM3u8 = false) {
+function callAria2(url, folder, filename, headers = {}) {
   const headerText = Object.entries(headers).map(([key, value]) => `${key}: ${value}`).join('\r\n');
   const output = path.join(folder, filename);
   const tempOutput = getFfmpegTempPath(output);
   try { fs.rmSync(tempOutput, { force: true }); } catch (e) { /* 临时文件不存在 */ }
   const args = ['-x', '16', '-s', '16', '-k', '1M', '-c', '--no-conf', '--auto-file-renaming=false'];
-  if (isM3u8) args.push('--hls-segment-threads=16');
   if (headerText) {
     for (const line of headerText.split('\r\n')) args.push('--header', line);
   }
@@ -430,7 +429,7 @@ async function waitForFile(filePath, minSize, stableMs, timeoutMs) {
 }
 
 function engineChain(selected, isM3u8, runMode) {
-  if (isM3u8) return ['aria2', 'ffmpeg'];
+  if (isM3u8) return ['ffmpeg'];
   let chain;
   if (selected === 'idm') chain = ['idm', 'aria2', 'ffmpeg'];
   else if (selected === 'ffmpeg') chain = ['ffmpeg', 'aria2', 'idm'];

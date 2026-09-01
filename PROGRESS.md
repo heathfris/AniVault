@@ -1,5 +1,11 @@
 # PROGRESS
 
+## 番仓 AniVault 0.10.2 收尾记录（2026-09-01）
+
+- 全仓核对后确认本机 aria2 1.37.0 不支持旧代码传入的 `--hls-segment-threads=16`；用回归测试先复现 M3U8 会错误调用 aria2，再将 M3U8 引擎链收敛为仅 ffmpeg。
+- 当前说明、Agent规则、版本面、历史设计状态与mpv安装现状已同步；测试发现范围收敛到仓库测试，历史运行日志和旧版本事实保留，不伪装成当前说明。
+- 本机mpv模块已安装并启用，部署Lua哈希匹配仓库源码；真实长视频双90%改名的端到端结果尚未记录。
+
 ## 番仓 AniVault 0.9.0 完成记录（2026-08-11）
 - 浏览器复用：processAllAnime 内 createBrowserPool 懒启动共享浏览器，finally 必关；getPlayUrl 支持传入池并每次 newContext，不传时临时自启兼容。
 - 日志：src/logutil.js 新增 appendRotated（上限 2000 行，保留尾部+轮转标记）与 tailFileFast（读末尾 64KB）；progress/blocked 与 main log:tail 已切换。
@@ -613,3 +619,357 @@ D:\project_codex\����\tools\aria2\aria2c.exe: unknown option -- hls-segm
 2026-08-16 18:04:43 穹庐下的魔女: 全部成功，end 7 -> 8
 2026-08-16 18:04:44 穹庐下的魔女: 文件夹改名 7_穹庐下的魔女1-7 -> 7_穹庐下的魔女1-8
 2026-08-16 18:04:44 待下载清单已写: D:\project_codex\番仓\local\待下载清单.csv（0 行）
+2026-08-17 18:00:01 启动 (实跑)
+2026-08-17 18:00:03 尼古喵喵: 无新集（downloaded_end=7，站内 7）
+2026-08-17 18:00:04 感谢对战 大小姐才不玩格斗游戏: 无新集（downloaded_end=5，站内 5）
+2026-08-17 18:00:05 再见，拉拉: 站内最新 7，本次下载 7（downloaded_end=6，单次上限 10，并发 3）
+2026-08-17 18:00:13   再见，拉拉 第07集 - 在线播放 - AGE动漫.mp4 线路1: 交给 aria2 (MP4) https://v16s.hypstarcdn.com/87c41af3abf095b4e98ca464555ad28c/6a82ed38/video/tos/alisg/tos-alisg-v-90...
+2026-08-17 18:03:00 再见，拉拉 第7集: 完成（线路1，362490393 字节）
+2026-08-17 18:03:00 再见，拉拉: 全部成功，end 6 -> 7
+2026-08-17 18:03:01 再见，拉拉: 文件夹改名 6_再见，拉拉1-6 -> 6_再见，拉拉1-7
+2026-08-17 18:03:02 穹庐下的魔女: 无新集（downloaded_end=8，站内 8）
+2026-08-17 18:03:02 待下载清单已写: D:\project_codex\260814_animeinstall_auto\local\待下载清单.csv（0 行）
+2026-08-18 18:03:23 启动 (实跑)
+2026-08-18 18:03:26 尼古喵喵: 无新集（downloaded_end=7，站内 7）
+2026-08-18 18:03:27 感谢对战 大小姐才不玩格斗游戏: 无新集（downloaded_end=5，站内 5）
+2026-08-18 18:03:28 再见，拉拉: 无新集（downloaded_end=7，站内 7）
+2026-08-18 18:03:29 穹庐下的魔女: 无新集（downloaded_end=8，站内 8）
+2026-08-18 18:03:29 待下载清单已写: D:\project_codex\260814_animeinstall_auto\local\待下载清单.csv（0 行）
+2026-08-19 18:00:04 启动 (实跑)
+2026-08-19 18:00:06 尼古喵喵: 无新集（downloaded_end=7，站内 7）
+2026-08-19 18:00:07 感谢对战 大小姐才不玩格斗游戏: 站内最新 7，本次下载 6,7（downloaded_end=5，单次上限 10，并发 3）
+2026-08-19 18:00:15   感谢对战 大小姐才不玩格斗游戏 第06集 - 在线播放 - AGE动漫.mp4 线路1: 交给 aria2 (MP4) https://v16-livesaas-vod.bytepluscdn.com/85e7bc514840fb254060115841bdac07/6a858dc2/video/tos/alisg/t...
+2026-08-19 18:00:44   感谢对战 大小姐才不玩格斗游戏 第07集 - 在线播放 - AGE动漫.mp4 线路1: 交给 aria2 (MP4) https://v16-app.lemon8cdn.com/d18d3e0df334c3fa1fa71128b57a36c5/6a858041/video/tos/alisg/tos-alisg-v-...
+2026-08-19 18:02:53 感谢对战 大小姐才不玩格斗游戏 第6集: 完成（线路1，423470069 字节）
+2026-08-19 18:03:54 感谢对战 大小姐才不玩格斗游戏 第7集: 完成（线路1，541733514 字节）
+2026-08-19 18:03:54 感谢对战 大小姐才不玩格斗游戏: 全部成功，end 5 -> 7
+2026-08-19 18:03:55 感谢对战 大小姐才不玩格斗游戏: 文件夹改名 5_感谢对战 大小姐才不玩格斗游戏1-5 -> 5_感谢对战 大小姐才不玩格斗游戏1-7
+2026-08-19 18:03:56 再见，拉拉: 无新集（downloaded_end=7，站内 7）
+2026-08-19 18:03:57 穹庐下的魔女: 无新集（downloaded_end=8，站内 8）
+2026-08-19 18:03:57 待下载清单已写: D:\project_codex\260814_animeinstall_auto\local\待下载清单.csv（0 行）
+2026-08-20 16:59:02 启动 (dry-run)
+2026-08-20 16:59:04 尼古喵喵: 无新集（downloaded_end=7，站内 7）
+2026-08-20 16:59:05 感谢对战 大小姐才不玩格斗游戏: 无新集（downloaded_end=7，站内 7）
+2026-08-20 16:59:06 再见，拉拉: 无新集（downloaded_end=7，站内 7）
+2026-08-20 16:59:08 穹庐下的魔女: 无新集（downloaded_end=8，站内 8）
+2026-08-20 16:59:08 待下载清单已写: D:\project_codex\260814_animeinstall_auto\local\待下载清单.csv（0 行）
+2026-08-20 16:59:17 启动 (dry-run)
+2026-08-20 16:59:19 尼古喵喵: 无新集（downloaded_end=7，站内 7）
+2026-08-20 16:59:20 感谢对战 大小姐才不玩格斗游戏: 无新集（downloaded_end=7，站内 7）
+2026-08-20 16:59:21 再见，拉拉: 无新集（downloaded_end=7，站内 7）
+2026-08-20 16:59:30 查询失败且本运行无待下载行，保留上次待下载清单
+2026-08-20 16:59:39 启动 (dry-run)
+2026-08-20 17:00:05 查询失败且本运行无待下载行，保留上次待下载清单
+2026-08-20 17:02:28 启动 (dry-run)
+2026-08-20 17:02:30 尼古喵喵: 无新集（downloaded_end=7，站内 7）
+2026-08-20 17:02:32 感谢对战 大小姐才不玩格斗游戏: 无新集（downloaded_end=7，站内 7）
+2026-08-20 17:02:33 再见，拉拉: 无新集（downloaded_end=7，站内 7）
+2026-08-20 17:02:34 穹庐下的魔女: 无新集（downloaded_end=8，站内 8）
+2026-08-20 17:02:34 Re：从零开始的异世界生活 第四季 丧失篇: 补 site_id=20260066
+2026-08-20 17:02:35 Re：从零开始的异世界生活 第四季 丧失篇: 补 update_time=2026
+2026-08-20 17:02:35 Re：从零开始的异世界生活 第四季 丧失篇: 无新集（downloaded_end=13，站内 13）
+2026-08-20 17:02:36 待下载清单已写: D:\project_codex\260814_animeinstall_auto\local\待下载清单.csv（0 行）
+2026-08-20 18:00:01 启动 (实跑)
+2026-08-20 18:00:03 尼古喵喵: 无新集（downloaded_end=7，站内 7）
+2026-08-20 18:00:04 感谢对战 大小姐才不玩格斗游戏: 无新集（downloaded_end=7，站内 7）
+2026-08-20 18:00:06 再见，拉拉: 无新集（downloaded_end=7，站内 7）
+2026-08-20 18:00:07 穹庐下的魔女: 无新集（downloaded_end=8，站内 8）
+2026-08-20 18:00:08 Re：从零开始的异世界生活 第四季 丧失篇: 无新集（downloaded_end=13，站内 13）
+2026-08-20 18:00:08 待下载清单已写: D:\project_codex\260814_animeinstall_auto\local\待下载清单.csv（0 行）
+2026-08-21 18:00:04 启动 (实跑)
+2026-08-21 18:00:06 尼古喵喵: 无新集（downloaded_end=7，站内 7）
+2026-08-21 18:00:07 感谢对战 大小姐才不玩格斗游戏: 无新集（downloaded_end=7，站内 7）
+2026-08-21 18:00:08 再见，拉拉: 无新集（downloaded_end=7，站内 7）
+2026-08-21 18:00:09 穹庐下的魔女: 无新集（downloaded_end=8，站内 8）
+2026-08-21 18:00:10 Re：从零开始的异世界生活 第四季 丧失篇: 无新集（downloaded_end=13，站内 13）
+2026-08-21 18:00:10 待下载清单已写: D:\project_codex\260814_animeinstall_auto\local\待下载清单.csv（0 行）
+2026-08-22 18:00:04 启动 (实跑)
+2026-08-22 18:00:06 尼古喵喵: 站内最新 8，本次下载 8（downloaded_end=7，单次上限 10，并发 3）
+2026-08-22 18:00:14   尼古喵喵_08.mp4 线路1: 交给 aria2 (MP4) https://v16.muscdn.com/72194af1711862eb45cde20abad03a72/6a8975bf/video/tos/alisg/tos-alisg-v-90231e-...
+2026-08-22 18:03:03 尼古喵喵 第8集: 完成（线路1，430810186 字节）
+2026-08-22 18:03:03 尼古喵喵: 全部成功，end 7 -> 8
+2026-08-22 18:03:04 尼古喵喵: 文件夹改名 7_尼古喵喵1-7 -> 7_尼古喵喵1-8
+2026-08-22 18:03:05 再见，拉拉: 无新集（downloaded_end=7，站内 7）
+2026-08-22 18:03:06 穹庐下的魔女: 无新集（downloaded_end=8，站内 8）
+2026-08-22 18:03:07 Re：从零开始的异世界生活 第四季 丧失篇: 无新集（downloaded_end=13，站内 13）
+2026-08-22 18:03:07 待下载清单已写: D:\project_codex\260814_animeinstall_auto\local\待下载清单.csv（0 行）
+2026-08-23 18:00:04 启动 (实跑)
+2026-08-23 18:00:06 尼古喵喵: 无新集（downloaded_end=8，站内 8）
+2026-08-23 18:00:07 再见，拉拉: 无新集（downloaded_end=7，站内 7）
+2026-08-23 18:00:08 穹庐下的魔女: 站内最新 9，本次下载 9（downloaded_end=8，单次上限 10，并发 3）
+2026-08-23 18:00:15   穹庐下的魔女 第09集 - 在线播放 - AGE动漫.mp4 线路1: 交给 aria2 (MP4) https://v16.topbuzzcdn.com/0feb49b48290dcef911c36b8d6f99c02/6a8ad697/video/tos/alisg/tos-alisg-v-902...
+2026-08-23 18:03:33 穹庐下的魔女 第9集: 完成（线路1，1669097176 字节）
+2026-08-23 18:03:33 穹庐下的魔女: 全部成功，end 8 -> 9
+2026-08-23 18:03:34 穹庐下的魔女: 文件夹改名 8_穹庐下的魔女1-8 -> 8_穹庐下的魔女1-9
+2026-08-23 18:03:35 Re：从零开始的异世界生活 第四季 丧失篇: 无新集（downloaded_end=13，站内 13）
+2026-08-23 18:03:35 待下载清单已写: D:\project_codex\260814_animeinstall_auto\local\待下载清单.csv（0 行）
+2026-08-24 18:00:04 启动 (实跑)
+2026-08-24 18:00:06 尼古喵喵: 无新集（downloaded_end=8，站内 8）
+2026-08-24 18:00:07 再见，拉拉: 站内最新 8，本次下载 8（downloaded_end=7，单次上限 10，并发 3）
+2026-08-24 18:00:15   再见，拉拉 第08集 - 在线播放 - AGE动漫.mp4 线路1: 交给 aria2 (MP4) https://v16.topbuzzcdn.com/8623d69eb6e3742f0ffaf262e329c060/6a8c142c/video/tos/alisg/tos-alisg-v-902...
+2026-08-24 18:02:31 再见，拉拉 第8集: 完成（线路1，370706941 字节）
+2026-08-24 18:02:31 再见，拉拉: 全部成功，end 7 -> 8
+2026-08-24 18:02:32 再见，拉拉: 文件夹改名 7_再见，拉拉1-7 -> 7_再见，拉拉1-8
+2026-08-24 18:02:33 穹庐下的魔女: 无新集（downloaded_end=9，站内 9）
+2026-08-24 18:02:34 Re：从零开始的异世界生活 第四季 丧失篇: 无新集（downloaded_end=13，站内 13）
+2026-08-24 18:02:34 待下载清单已写: D:\project_codex\260814_animeinstall_auto\local\待下载清单.csv（0 行）
+2026-08-25 18:00:04 启动 (实跑)
+2026-08-25 18:00:06 尼古喵喵: 无新集（downloaded_end=8，站内 8）
+2026-08-25 18:00:07 再见，拉拉: 无新集（downloaded_end=8，站内 8）
+2026-08-25 18:00:08 穹庐下的魔女: 无新集（downloaded_end=9，站内 9）
+2026-08-25 18:00:09 Re：从零开始的异世界生活 第四季 丧失篇: 无新集（downloaded_end=13，站内 13）
+2026-08-25 18:00:09 待下载清单已写: D:\project_codex\260814_animeinstall_auto\local\待下载清单.csv（0 行）
+2026-08-26 18:00:03 启动 (实跑)
+2026-08-26 18:00:06 尼古喵喵: 无新集（downloaded_end=8，站内 8）
+2026-08-26 18:00:07 再见，拉拉: 无新集（downloaded_end=8，站内 8）
+2026-08-26 18:00:08 穹庐下的魔女: 无新集（downloaded_end=9，站内 9）
+2026-08-26 18:00:09 Re：从零开始的异世界生活 第四季 丧失篇: 无新集（downloaded_end=13，站内 13）
+2026-08-26 18:00:09 待下载清单已写: D:\project_codex\260814_animeinstall_auto\local\待下载清单.csv（0 行）
+2026-08-27 18:00:03 启动 (实跑)
+2026-08-27 18:00:05 尼古喵喵: 无新集（downloaded_end=8，站内 8）
+2026-08-27 18:00:07 再见，拉拉: 无新集（downloaded_end=8，站内 8）
+2026-08-27 18:00:08 穹庐下的魔女: 无新集（downloaded_end=9，站内 9）
+2026-08-27 18:00:09 Re：从零开始的异世界生活 第四季 丧失篇: 站内最新 14，本次下载 14（downloaded_end=13，单次上限 10，并发 3）
+2026-08-27 18:00:20   Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫.mp4 线路1: 交给 aria2 (MP4) https://v16-livesaas-vod.bytepluscdn.com/19ca712a1e2766953aedc8303ce94380/6a9018aa/video/tos/alisg/t...
+2026-08-27 18:00:22   Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫.mp4 线路1: aria2 失败 exit=16
+2026-08-27 18:00:22   Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫.mp4 线路1: 交给 ffmpeg (MP4) https://v16-livesaas-vod.bytepluscdn.com/19ca712a1e2766953aedc8303ce94380/6a9018aa/video/tos/alisg/t...
+2026-08-27 18:00:30   Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫.mp4 线路1: ffmpeg 失败 exit=4294967294: [out#0/mp4 @ 000001ebc60ae340] Error opening output D:\idm下载\13_Re：从零开始的异世界生活 第四季 丧失篇1-13\Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫.part.mp4: No such file or directory
+Error opening output file D:\idm下载\13_Re：从零开始的异世界生活 第四季 丧失篇1-13\Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫.part.mp4.
+Error opening
+2026-08-27 18:01:01   Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫.mp4 线路2: 交给 aria2 (M3U8) https://vip.ffzy-plays.com/20260826/57490_92491efa/index.m3u8...
+2026-08-27 18:01:01   Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫.mp4 线路2: aria2 失败 exit=28: Usage: aria2c [OPTIONS] [URI | MAGNET | TORRENT_FILE | METALINK_FILE]...
+See 'aria2c -h'.
+D:\project_codex\260814_animeinstall_auto\tools\aria2\aria2c.exe: unknown option -- hls-segment-threads=16
+2026-08-27 18:01:01   Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫.mp4 线路2: 交给 ffmpeg (M3U8) https://vip.ffzy-plays.com/20260826/57490_92491efa/index.m3u8...
+2026-08-27 18:01:06   Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫.mp4 线路2: ffmpeg 失败 exit=4294967294: [out#0/mp4 @ 000002198b551100] Error opening output D:\idm下载\13_Re：从零开始的异世界生活 第四季 丧失篇1-13\Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫_L2.part.mp4: No such file or directory
+Error opening output file D:\idm下载\13_Re：从零开始的异世界生活 第四季 丧失篇1-13\Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫_L2.part.mp4.
+Error op
+2026-08-27 18:02:38   Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫.mp4 线路3: 交给 aria2 (M3U8) https://fengbao12.com/video/Reconglingkaishideyishijieshenghuodisiji/f971db6e5df9/index.m3u8...
+2026-08-27 18:02:38   Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫.mp4 线路3: aria2 失败 exit=28: Usage: aria2c [OPTIONS] [URI | MAGNET | TORRENT_FILE | METALINK_FILE]...
+See 'aria2c -h'.
+D:\project_codex\260814_animeinstall_auto\tools\aria2\aria2c.exe: unknown option -- hls-segment-threads=16
+2026-08-27 18:02:38   Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫.mp4 线路3: 交给 ffmpeg (M3U8) https://fengbao12.com/video/Reconglingkaishideyishijieshenghuodisiji/f971db6e5df9/index.m3u8...
+2026-08-27 18:02:40   Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫.mp4 线路3: ffmpeg 失败 exit=4294967294: [out#0/mp4 @ 0000018470a29140] Error opening output D:\idm下载\13_Re：从零开始的异世界生活 第四季 丧失篇1-13\Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫_L3.part.mp4: No such file or directory
+Error opening output file D:\idm下载\13_Re：从零开始的异世界生活 第四季 丧失篇1-13\Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫_L3.part.mp4.
+Error op
+2026-08-27 18:04:13   Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫.mp4 线路4: 交给 aria2 (M3U8) https://v1.ppqrrs.com/202608/26/imTuwEN1vK87/video/index.m3u8...
+2026-08-27 18:04:13   Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫.mp4 线路4: aria2 失败 exit=28: Usage: aria2c [OPTIONS] [URI | MAGNET | TORRENT_FILE | METALINK_FILE]...
+See 'aria2c -h'.
+D:\project_codex\260814_animeinstall_auto\tools\aria2\aria2c.exe: unknown option -- hls-segment-threads=16
+2026-08-27 18:04:13   Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫.mp4 线路4: 交给 ffmpeg (M3U8) https://v1.ppqrrs.com/202608/26/imTuwEN1vK87/video/index.m3u8...
+2026-08-27 18:04:18   Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫.mp4 线路4: ffmpeg 失败 exit=4294967294: [out#0/mp4 @ 0000019fc20a7a40] Error opening output D:\idm下载\13_Re：从零开始的异世界生活 第四季 丧失篇1-13\Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫_L4.part.mp4: No such file or directory
+Error opening output file D:\idm下载\13_Re：从零开始的异世界生活 第四季 丧失篇1-13\Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫_L4.part.mp4.
+Error op
+2026-08-27 18:05:49   Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫.mp4 线路5: 取址失败
+2026-08-27 18:05:49 待下载清单已写: D:\project_codex\260814_animeinstall_auto\local\待下载清单.csv（1 行）
+2026-08-28 18:00:04 启动 (实跑)
+2026-08-28 18:00:06 尼古喵喵: 无新集（downloaded_end=8，站内 8）
+2026-08-28 18:00:07 再见，拉拉: 无新集（downloaded_end=8，站内 8）
+2026-08-28 18:00:08 穹庐下的魔女: 无新集（downloaded_end=9，站内 9）
+2026-08-28 18:00:10 Re：从零开始的异世界生活 第四季 丧失篇: 站内最新 14，本次下载 14（downloaded_end=13，单次上限 10，并发 3）
+2026-08-28 18:00:19   Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫.mp4 线路1: 交给 aria2 (MP4) https://v16.akamaized.net/793c701be0c3d5ac981fd9f59c05fc3e/6a916c6c/video/tos/alisg/tos-alisg-v-9023...
+2026-08-28 18:00:20   Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫.mp4 线路1: aria2 失败 exit=16
+2026-08-28 18:00:21   Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫.mp4 线路1: 交给 ffmpeg (MP4) https://v16.akamaized.net/793c701be0c3d5ac981fd9f59c05fc3e/6a916c6c/video/tos/alisg/tos-alisg-v-9023...
+2026-08-28 18:00:26   Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫.mp4 线路1: ffmpeg 失败 exit=4294967294: [out#0/mp4 @ 0000029a059eb140] Error opening output D:\idm下载\13_Re：从零开始的异世界生活 第四季 丧失篇1-13\Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫.part.mp4: No such file or directory
+Error opening output file D:\idm下载\13_Re：从零开始的异世界生活 第四季 丧失篇1-13\Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫.part.mp4.
+Error opening
+2026-08-28 18:00:57   Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫.mp4 线路2: 交给 aria2 (M3U8) https://vip.ffzy-plays.com/20260826/57490_92491efa/index.m3u8...
+2026-08-28 18:00:58   Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫.mp4 线路2: aria2 失败 exit=28: Usage: aria2c [OPTIONS] [URI | MAGNET | TORRENT_FILE | METALINK_FILE]...
+See 'aria2c -h'.
+D:\project_codex\260814_animeinstall_auto\tools\aria2\aria2c.exe: unknown option -- hls-segment-threads=16
+2026-08-28 18:00:58   Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫.mp4 线路2: 交给 ffmpeg (M3U8) https://vip.ffzy-plays.com/20260826/57490_92491efa/index.m3u8...
+2026-08-28 18:01:01   Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫.mp4 线路2: ffmpeg 失败 exit=4294967294: [out#0/mp4 @ 000001e5c19095c0] Error opening output D:\idm下载\13_Re：从零开始的异世界生活 第四季 丧失篇1-13\Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫_L2.part.mp4: No such file or directory
+Error opening output file D:\idm下载\13_Re：从零开始的异世界生活 第四季 丧失篇1-13\Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫_L2.part.mp4.
+Error op
+2026-08-28 18:02:34   Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫.mp4 线路3: 交给 aria2 (M3U8) https://fengbao12.com/video/Reconglingkaishideyishijieshenghuodisiji/f971db6e5df9/index.m3u8...
+2026-08-28 18:02:34   Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫.mp4 线路3: aria2 失败 exit=28: Usage: aria2c [OPTIONS] [URI | MAGNET | TORRENT_FILE | METALINK_FILE]...
+See 'aria2c -h'.
+D:\project_codex\260814_animeinstall_auto\tools\aria2\aria2c.exe: unknown option -- hls-segment-threads=16
+2026-08-28 18:02:34   Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫.mp4 线路3: 交给 ffmpeg (M3U8) https://fengbao12.com/video/Reconglingkaishideyishijieshenghuodisiji/f971db6e5df9/index.m3u8...
+2026-08-28 18:02:36   Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫.mp4 线路3: ffmpeg 失败 exit=4294967294: [out#0/mp4 @ 000002ab9ab04300] Error opening output D:\idm下载\13_Re：从零开始的异世界生活 第四季 丧失篇1-13\Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫_L3.part.mp4: No such file or directory
+Error opening output file D:\idm下载\13_Re：从零开始的异世界生活 第四季 丧失篇1-13\Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫_L3.part.mp4.
+Error op
+2026-08-28 18:04:08   Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫.mp4 线路4: 交给 aria2 (M3U8) https://v1.ppqrrs.com/202608/26/imTuwEN1vK87/video/index.m3u8...
+2026-08-28 18:04:09   Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫.mp4 线路4: aria2 失败 exit=28: Usage: aria2c [OPTIONS] [URI | MAGNET | TORRENT_FILE | METALINK_FILE]...
+See 'aria2c -h'.
+D:\project_codex\260814_animeinstall_auto\tools\aria2\aria2c.exe: unknown option -- hls-segment-threads=16
+2026-08-28 18:04:09   Re：从零开始的异世界生活 第四季 丧失篇 第14集 - 在线播放 - AGE动漫.mp4 线路4: 交给 ffmpeg (M3U8) https://v1.ppqrrs.com/202608/26/imTuwEN1vK87/video/index.m3u8...
+2026-08-28 18:14:01 Re：从零开始的异世界生活 第四季 丧失篇 第14集: 完成（线路4，147478592 字节）
+2026-08-28 18:14:01 Re：从零开始的异世界生活 第四季 丧失篇: 全部成功，end 13 -> 14
+2026-08-28 18:14:02 Re：从零开始的异世界生活 第四季 丧失篇: 文件夹改名 13_Re：从零开始的异世界生活 第四季 丧失篇1-13 -> 13_Re：从零开始的异世界生活 第四季 丧失篇1-14
+2026-08-28 18:14:02 待下载清单已写: D:\project_codex\260814_animeinstall_auto\local\待下载清单.csv（0 行）
+2026-08-29 18:00:03 启动 (实跑)
+2026-08-29 18:00:05 尼古喵喵: 无新集（downloaded_end=8，站内 8）
+2026-08-29 18:00:06 再见，拉拉: 无新集（downloaded_end=8，站内 8）
+2026-08-29 18:00:07 穹庐下的魔女: 无新集（downloaded_end=9，站内 9）
+2026-08-29 18:00:08 Re：从零开始的异世界生活 第四季 丧失篇: 无新集（downloaded_end=14，站内 14）
+2026-08-29 18:00:08 待下载清单已写: D:\project_codex\260814_animeinstall_auto\local\待下载清单.csv（0 行）
+2026-08-30 18:00:03 启动 (实跑)
+2026-08-30 18:00:06 尼古喵喵: 无新集（downloaded_end=8，站内 8）
+2026-08-30 18:00:07 再见，拉拉: 无新集（downloaded_end=8，站内 8）
+2026-08-30 18:00:08 穹庐下的魔女: 站内最新 10，本次下载 10（downloaded_end=9，单次上限 10，并发 3）
+2026-08-30 18:00:16   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路1: 交给 aria2 (MP4) https://v16s.hypstarcdn.com/b3cbf3afc89588a66676af05920b3f9e/6a940c53/video/tos/alisg/tos-alisg-v-90...
+2026-08-30 18:00:17   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路1: aria2 失败 exit=16
+2026-08-30 18:00:17   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路1: 交给 ffmpeg (MP4) https://v16s.hypstarcdn.com/b3cbf3afc89588a66676af05920b3f9e/6a940c53/video/tos/alisg/tos-alisg-v-90...
+2026-08-30 18:06:11   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路1: ffmpeg 失败 exit=1: 完成文件改名失败: EPERM: operation not permitted, rename 'D:\idm下载\8_穹庐下的魔女1-9\穹庐下的魔女 第10集 - 在线播放 - AGE动漫.part.mp4' -> 'D:\idm下载\8_穹庐下的魔女1-9\穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4'
+2026-08-30 18:06:43   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路2: 交给 aria2 (M3U8) https://vip.ffzy-plays.com/20260830/57628_8998bab6/index.m3u8...
+2026-08-30 18:06:43   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路2: aria2 失败 exit=28: Usage: aria2c [OPTIONS] [URI | MAGNET | TORRENT_FILE | METALINK_FILE]...
+See 'aria2c -h'.
+D:\project_codex\260814_animeinstall_auto\tools\aria2\aria2c.exe: unknown option -- hls-segment-threads=16
+2026-08-30 18:06:43   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路2: 交给 ffmpeg (M3U8) https://vip.ffzy-plays.com/20260830/57628_8998bab6/index.m3u8...
+2026-08-30 18:10:20   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路2: ffmpeg 失败 exit=1: 完成文件改名失败: EPERM: operation not permitted, rename 'D:\idm下载\8_穹庐下的魔女1-9\穹庐下的魔女 第10集 - 在线播放 - AGE动漫_L2.part.mp4' -> 'D:\idm下载\8_穹庐下的魔女1-9\穹庐下的魔女 第10集 - 在线播放 - AGE动漫_L2.mp4'
+2026-08-30 18:11:52   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路3: 交给 aria2 (M3U8) https://fengbao12.com/video/qiongluxiademonv/d77ad42c67c9/index.m3u8...
+2026-08-30 18:11:52   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路3: aria2 失败 exit=28: Usage: aria2c [OPTIONS] [URI | MAGNET | TORRENT_FILE | METALINK_FILE]...
+See 'aria2c -h'.
+D:\project_codex\260814_animeinstall_auto\tools\aria2\aria2c.exe: unknown option -- hls-segment-threads=16
+2026-08-30 18:11:52   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路3: 交给 ffmpeg (M3U8) https://fengbao12.com/video/qiongluxiademonv/d77ad42c67c9/index.m3u8...
+2026-08-30 18:13:46   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路3: ffmpeg 失败 exit=1: 完成文件改名失败: EPERM: operation not permitted, rename 'D:\idm下载\8_穹庐下的魔女1-9\穹庐下的魔女 第10集 - 在线播放 - AGE动漫_L3.part.mp4' -> 'D:\idm下载\8_穹庐下的魔女1-9\穹庐下的魔女 第10集 - 在线播放 - AGE动漫_L3.mp4'
+2026-08-30 18:15:18   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路4: 交给 aria2 (M3U8) https://v6.ppqrrs.com/wjv6/202608/30/YKPjLMumsq88/video/index.m3u8...
+2026-08-30 18:15:18   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路4: aria2 失败 exit=28: Usage: aria2c [OPTIONS] [URI | MAGNET | TORRENT_FILE | METALINK_FILE]...
+See 'aria2c -h'.
+D:\project_codex\260814_animeinstall_auto\tools\aria2\aria2c.exe: unknown option -- hls-segment-threads=16
+2026-08-30 18:15:18   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路4: 交给 ffmpeg (M3U8) https://v6.ppqrrs.com/wjv6/202608/30/YKPjLMumsq88/video/index.m3u8...
+2026-08-30 18:19:11   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路4: ffmpeg 失败 exit=1: 完成文件改名失败: EPERM: operation not permitted, rename 'D:\idm下载\8_穹庐下的魔女1-9\穹庐下的魔女 第10集 - 在线播放 - AGE动漫_L4.part.mp4' -> 'D:\idm下载\8_穹庐下的魔女1-9\穹庐下的魔女 第10集 - 在线播放 - AGE动漫_L4.mp4'
+2026-08-30 18:20:43   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路5: 交给 aria2 (M3U8) https://v.lzcdn31.com/20260830/10735_3334c277/index.m3u8...
+2026-08-30 18:20:43   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路5: aria2 失败 exit=28: Usage: aria2c [OPTIONS] [URI | MAGNET | TORRENT_FILE | METALINK_FILE]...
+See 'aria2c -h'.
+D:\project_codex\260814_animeinstall_auto\tools\aria2\aria2c.exe: unknown option -- hls-segment-threads=16
+2026-08-30 18:20:43   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路5: 交给 ffmpeg (M3U8) https://v.lzcdn31.com/20260830/10735_3334c277/index.m3u8...
+2026-08-30 18:22:01   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路5: ffmpeg 失败 exit=1: 完成文件改名失败: EPERM: operation not permitted, rename 'D:\idm下载\8_穹庐下的魔女1-9\穹庐下的魔女 第10集 - 在线播放 - AGE动漫_L5.part.mp4' -> 'D:\idm下载\8_穹庐下的魔女1-9\穹庐下的魔女 第10集 - 在线播放 - AGE动漫_L5.mp4'
+2026-08-30 18:22:02 Re：从零开始的异世界生活 第四季 丧失篇: 无新集（downloaded_end=14，站内 14）
+2026-08-30 18:22:02 待下载清单已写: D:\project_codex\260814_animeinstall_auto\local\待下载清单.csv（1 行）
+2026-08-31 16:50:04 启动 (dry-run)
+2026-08-31 16:50:07 尼古喵喵: 无新集（downloaded_end=8，站内 8）
+2026-08-31 16:50:08 再见，拉拉: 站内最新 9，本次下载 9（downloaded_end=8，单次上限 10，并发 3）
+2026-08-31 16:50:09 穹庐下的魔女: 站内最新 10，本次下载 10（downloaded_end=9，单次上限 10，并发 3）
+2026-08-31 16:50:11 Re：从零开始的异世界生活 第四季 丧失篇: 无新集（downloaded_end=14，站内 14）
+2026-08-31 16:50:11 待下载清单已写: D:\project_codex\260814_animeinstall_auto\local\待下载清单.csv（2 行）
+2026-08-31 18:00:02 启动 (实跑)
+2026-08-31 18:00:04 尼古喵喵: 无新集（downloaded_end=8，站内 8）
+2026-08-31 18:00:05 再见，拉拉: 站内最新 9，本次下载 9（downloaded_end=8，单次上限 10，并发 3）
+2026-08-31 18:00:17   再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4 线路1: 交给 aria2 (MP4) https://v16-app.lemon8cdn.com/8427d85d262ae79d96fd7dd31cdf22f6/6a9563af/video/tos/alisg/tos-alisg-v-...
+2026-08-31 18:00:19   再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4 线路1: aria2 失败 exit=16
+2026-08-31 18:00:19   再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4 线路1: 交给 ffmpeg (MP4) https://v16-app.lemon8cdn.com/8427d85d262ae79d96fd7dd31cdf22f6/6a9563af/video/tos/alisg/tos-alisg-v-...
+2026-08-31 18:44:35   再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4 线路1: ffmpeg 失败 exit=1: 完成文件改名失败: EPERM: operation not permitted, rename 'D:\idm下载\8_再见，拉拉1-8\再见，拉拉 第09集 - 在线播放 - AGE动漫.part.mp4' -> 'D:\idm下载\8_再见，拉拉1-8\再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4'
+2026-08-31 18:45:08   再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4 线路2: 交给 aria2 (M3U8) https://vip.ffzy-plays.com/20260830/57674_005d3d22/index.m3u8...
+2026-08-31 18:45:09   再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4 线路2: aria2 失败 exit=28: Usage: aria2c [OPTIONS] [URI | MAGNET | TORRENT_FILE | METALINK_FILE]...
+See 'aria2c -h'.
+D:\project_codex\260814_animeinstall_auto\tools\aria2\aria2c.exe: unknown option -- hls-segment-threads=16
+2026-08-31 18:45:09   再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4 线路2: 交给 ffmpeg (M3U8) https://vip.ffzy-plays.com/20260830/57674_005d3d22/index.m3u8...
+2026-08-31 18:46:52   再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4 线路2: ffmpeg 失败 exit=1: 完成文件改名失败: EPERM: operation not permitted, rename 'D:\idm下载\8_再见，拉拉1-8\再见，拉拉 第09集 - 在线播放 - AGE动漫_L2.part.mp4' -> 'D:\idm下载\8_再见，拉拉1-8\再见，拉拉 第09集 - 在线播放 - AGE动漫_L2.mp4'
+2026-08-31 18:48:25   再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4 线路3: 交给 aria2 (M3U8) https://fengbao12.com/video/zaijianlala/b35400b98e7b/index.m3u8...
+2026-08-31 18:48:25   再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4 线路3: aria2 失败 exit=28: Usage: aria2c [OPTIONS] [URI | MAGNET | TORRENT_FILE | METALINK_FILE]...
+See 'aria2c -h'.
+D:\project_codex\260814_animeinstall_auto\tools\aria2\aria2c.exe: unknown option -- hls-segment-threads=16
+2026-08-31 18:48:25   再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4 线路3: 交给 ffmpeg (M3U8) https://fengbao12.com/video/zaijianlala/b35400b98e7b/index.m3u8...
+2026-08-31 18:51:17   再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4 线路3: ffmpeg 失败 exit=1: 完成文件改名失败: EPERM: operation not permitted, rename 'D:\idm下载\8_再见，拉拉1-8\再见，拉拉 第09集 - 在线播放 - AGE动漫_L3.part.mp4' -> 'D:\idm下载\8_再见，拉拉1-8\再见，拉拉 第09集 - 在线播放 - AGE动漫_L3.mp4'
+2026-08-31 18:52:49   再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4 线路4: 交给 aria2 (M3U8) https://v3.ppqrrs.com/wjv3/202608/30/2QESjxmk4J95/video/index.m3u8...
+2026-08-31 18:52:50   再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4 线路4: aria2 失败 exit=28: Usage: aria2c [OPTIONS] [URI | MAGNET | TORRENT_FILE | METALINK_FILE]...
+See 'aria2c -h'.
+D:\project_codex\260814_animeinstall_auto\tools\aria2\aria2c.exe: unknown option -- hls-segment-threads=16
+2026-08-31 18:52:50   再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4 线路4: 交给 ffmpeg (M3U8) https://v3.ppqrrs.com/wjv3/202608/30/2QESjxmk4J95/video/index.m3u8...
+2026-08-31 18:56:54   再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4 线路4: ffmpeg 失败 exit=1: 完成文件改名失败: EPERM: operation not permitted, rename 'D:\idm下载\8_再见，拉拉1-8\再见，拉拉 第09集 - 在线播放 - AGE动漫_L4.part.mp4' -> 'D:\idm下载\8_再见，拉拉1-8\再见，拉拉 第09集 - 在线播放 - AGE动漫_L4.mp4'
+2026-08-31 18:58:27   再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4 线路5: 交给 aria2 (M3U8) https://v.lzcdn31.com/20260830/10792_faaa52e1/index.m3u8...
+2026-08-31 18:58:27   再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4 线路5: aria2 失败 exit=28: Usage: aria2c [OPTIONS] [URI | MAGNET | TORRENT_FILE | METALINK_FILE]...
+See 'aria2c -h'.
+D:\project_codex\260814_animeinstall_auto\tools\aria2\aria2c.exe: unknown option -- hls-segment-threads=16
+2026-08-31 18:58:27   再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4 线路5: 交给 ffmpeg (M3U8) https://v.lzcdn31.com/20260830/10792_faaa52e1/index.m3u8...
+2026-08-31 18:59:28   再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4 线路5: ffmpeg 失败 exit=1: 完成文件改名失败: EPERM: operation not permitted, rename 'D:\idm下载\8_再见，拉拉1-8\再见，拉拉 第09集 - 在线播放 - AGE动漫_L5.part.mp4' -> 'D:\idm下载\8_再见，拉拉1-8\再见，拉拉 第09集 - 在线播放 - AGE动漫_L5.mp4'
+2026-08-31 18:59:29 穹庐下的魔女: 站内最新 10，本次下载 10（downloaded_end=9，单次上限 10，并发 3）
+2026-08-31 18:59:35   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路1: 交给 aria2 (MP4) https://v16-livesaas-vod.bytepluscdn.com/234b773efb50b2c3dd230f3eaad1846c/6a9561b1/video/tos/alisg/t...
+2026-08-31 18:59:36   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路1: aria2 失败 exit=17
+2026-08-31 18:59:36   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路1: 交给 ffmpeg (MP4) https://v16-livesaas-vod.bytepluscdn.com/234b773efb50b2c3dd230f3eaad1846c/6a9561b1/video/tos/alisg/t...
+2026-08-31 19:30:28   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路1: ffmpeg 失败 exit=1: 完成文件改名失败: EPERM: operation not permitted, rename 'D:\idm下载\8_穹庐下的魔女1-9\穹庐下的魔女 第10集 - 在线播放 - AGE动漫.part.mp4' -> 'D:\idm下载\8_穹庐下的魔女1-9\穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4'
+2026-08-31 19:31:00   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路2: 交给 aria2 (M3U8) https://vip.ffzy-plays.com/20260830/57628_8998bab6/index.m3u8...
+2026-08-31 19:31:00   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路2: aria2 失败 exit=28: Usage: aria2c [OPTIONS] [URI | MAGNET | TORRENT_FILE | METALINK_FILE]...
+See 'aria2c -h'.
+D:\project_codex\260814_animeinstall_auto\tools\aria2\aria2c.exe: unknown option -- hls-segment-threads=16
+2026-08-31 19:31:00   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路2: 交给 ffmpeg (M3U8) https://vip.ffzy-plays.com/20260830/57628_8998bab6/index.m3u8...
+2026-08-31 19:35:51   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路2: ffmpeg 失败 exit=1: 完成文件改名失败: EPERM: operation not permitted, rename 'D:\idm下载\8_穹庐下的魔女1-9\穹庐下的魔女 第10集 - 在线播放 - AGE动漫_L2.part.mp4' -> 'D:\idm下载\8_穹庐下的魔女1-9\穹庐下的魔女 第10集 - 在线播放 - AGE动漫_L2.mp4'
+2026-08-31 19:37:24   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路3: 交给 aria2 (M3U8) https://fengbao12.com/video/qiongluxiademonv/d77ad42c67c9/index.m3u8...
+2026-08-31 19:37:24   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路3: aria2 失败 exit=28: Usage: aria2c [OPTIONS] [URI | MAGNET | TORRENT_FILE | METALINK_FILE]...
+See 'aria2c -h'.
+D:\project_codex\260814_animeinstall_auto\tools\aria2\aria2c.exe: unknown option -- hls-segment-threads=16
+2026-08-31 19:37:24   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路3: 交给 ffmpeg (M3U8) https://fengbao12.com/video/qiongluxiademonv/d77ad42c67c9/index.m3u8...
+2026-08-31 19:38:37   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路3: ffmpeg 失败 exit=1: 完成文件改名失败: EPERM: operation not permitted, rename 'D:\idm下载\8_穹庐下的魔女1-9\穹庐下的魔女 第10集 - 在线播放 - AGE动漫_L3.part.mp4' -> 'D:\idm下载\8_穹庐下的魔女1-9\穹庐下的魔女 第10集 - 在线播放 - AGE动漫_L3.mp4'
+2026-08-31 19:40:09   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路4: 交给 aria2 (M3U8) https://v6.ppqrrs.com/wjv6/202608/30/YKPjLMumsq88/video/index.m3u8...
+2026-08-31 19:40:09   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路4: aria2 失败 exit=28: Usage: aria2c [OPTIONS] [URI | MAGNET | TORRENT_FILE | METALINK_FILE]...
+See 'aria2c -h'.
+D:\project_codex\260814_animeinstall_auto\tools\aria2\aria2c.exe: unknown option -- hls-segment-threads=16
+2026-08-31 19:40:09   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路4: 交给 ffmpeg (M3U8) https://v6.ppqrrs.com/wjv6/202608/30/YKPjLMumsq88/video/index.m3u8...
+2026-08-31 19:45:33   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路4: ffmpeg 失败 exit=1: 完成文件改名失败: EPERM: operation not permitted, rename 'D:\idm下载\8_穹庐下的魔女1-9\穹庐下的魔女 第10集 - 在线播放 - AGE动漫_L4.part.mp4' -> 'D:\idm下载\8_穹庐下的魔女1-9\穹庐下的魔女 第10集 - 在线播放 - AGE动漫_L4.mp4'
+2026-08-31 19:47:06   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路5: 交给 aria2 (M3U8) https://v.lzcdn31.com/20260830/10735_3334c277/index.m3u8...
+2026-08-31 19:47:06   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路5: aria2 失败 exit=28: Usage: aria2c [OPTIONS] [URI | MAGNET | TORRENT_FILE | METALINK_FILE]...
+See 'aria2c -h'.
+D:\project_codex\260814_animeinstall_auto\tools\aria2\aria2c.exe: unknown option -- hls-segment-threads=16
+2026-08-31 19:47:06   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路5: 交给 ffmpeg (M3U8) https://v.lzcdn31.com/20260830/10735_3334c277/index.m3u8...
+2026-08-31 19:48:56   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路5: ffmpeg 失败 exit=1: 完成文件改名失败: EPERM: operation not permitted, rename 'D:\idm下载\8_穹庐下的魔女1-9\穹庐下的魔女 第10集 - 在线播放 - AGE动漫_L5.part.mp4' -> 'D:\idm下载\8_穹庐下的魔女1-9\穹庐下的魔女 第10集 - 在线播放 - AGE动漫_L5.mp4'
+2026-08-31 19:48:57 Re：从零开始的异世界生活 第四季 丧失篇: 无新集（downloaded_end=14，站内 14）
+2026-08-31 19:48:57 待下载清单已写: D:\project_codex\260814_animeinstall_auto\local\待下载清单.csv（2 行）
+2026-09-01 17:03:43   测试番 第02集.mp4: 复用完整临时文件，避免重复下载
+2026-09-01 17:05:16   测试番 第02集.mp4: 复用完整临时文件，避免重复下载
+2026-09-01 17:07:23   测试番 第02集.mp4: 复用完整临时文件，避免重复下载
+2026-09-01 17:07:26   测试番 第02集.mp4: 复用完整临时文件，避免重复下载
+2026-09-01 17:56:23   测试番 第02集.mp4: 复用完整临时文件，避免重复下载
+2026-09-01 18:00:02 启动 (实跑)
+2026-09-01 18:00:05 尼古喵喵: 无新集（downloaded_end=8，站内 8）
+2026-09-01 18:00:06 再见，拉拉: 站内最新 9，本次下载 9（downloaded_end=8，单次上限 10，并发 3）
+2026-09-01 18:00:14   再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4 线路1: 交给 aria2 (MP4) https://v16.toutiao50.com/acf3d110275506d7e1f9499056e9aa72/6a96a81f/video/tos/alisg/tos-alisg-v-9023...
+2026-09-01 18:00:15   再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4 线路1: aria2 失败 exit=16
+2026-09-01 18:00:15   再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4 线路1: 交给 ffmpeg (MP4) https://v16.toutiao50.com/acf3d110275506d7e1f9499056e9aa72/6a96a81f/video/tos/alisg/tos-alisg-v-9023...
+2026-09-01 18:01:26   再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4 线路1: ffmpeg 失败 exit=1: 完成文件改名失败: EPERM: operation not permitted, rename 'D:\idm下载\8_再见，拉拉1-8\再见，拉拉 第09集 - 在线播放 - AGE动漫.part.mp4' -> 'D:\idm下载\8_再见，拉拉1-8\再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4'
+2026-09-01 18:01:57   再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4 线路2: 交给 aria2 (M3U8) https://vip.ffzy-plays.com/20260830/57674_005d3d22/index.m3u8...
+2026-09-01 18:01:58   再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4 线路2: aria2 失败 exit=28: Usage: aria2c [OPTIONS] [URI | MAGNET | TORRENT_FILE | METALINK_FILE]...
+See 'aria2c -h'.
+D:\project_codex\260814_animeinstall_auto\tools\aria2\aria2c.exe: unknown option -- hls-segment-threads=16
+2026-09-01 18:01:58   再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4 线路2: 交给 ffmpeg (M3U8) https://vip.ffzy-plays.com/20260830/57674_005d3d22/index.m3u8...
+2026-09-01 18:04:11   再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4 线路2: ffmpeg 失败 exit=1: 完成文件改名失败: EPERM: operation not permitted, rename 'D:\idm下载\8_再见，拉拉1-8\再见，拉拉 第09集 - 在线播放 - AGE动漫_L2.part.mp4' -> 'D:\idm下载\8_再见，拉拉1-8\再见，拉拉 第09集 - 在线播放 - AGE动漫_L2.mp4'
+2026-09-01 18:05:43   再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4 线路3: 交给 aria2 (M3U8) https://fengbao12.com/video/zaijianlala/b35400b98e7b/index.m3u8...
+2026-09-01 18:05:43   再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4 线路3: aria2 失败 exit=28: Usage: aria2c [OPTIONS] [URI | MAGNET | TORRENT_FILE | METALINK_FILE]...
+See 'aria2c -h'.
+D:\project_codex\260814_animeinstall_auto\tools\aria2\aria2c.exe: unknown option -- hls-segment-threads=16
+2026-09-01 18:05:43   再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4 线路3: 交给 ffmpeg (M3U8) https://fengbao12.com/video/zaijianlala/b35400b98e7b/index.m3u8...
+2026-09-01 18:08:14   再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4 线路3: ffmpeg 失败 exit=1: 完成文件改名失败: EPERM: operation not permitted, rename 'D:\idm下载\8_再见，拉拉1-8\再见，拉拉 第09集 - 在线播放 - AGE动漫_L3.part.mp4' -> 'D:\idm下载\8_再见，拉拉1-8\再见，拉拉 第09集 - 在线播放 - AGE动漫_L3.mp4'
+2026-09-01 18:09:47   再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4 线路4: 交给 aria2 (M3U8) https://v3.ppqrrs.com/wjv3/202608/30/2QESjxmk4J95/video/index.m3u8...
+2026-09-01 18:09:47   再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4 线路4: aria2 失败 exit=28: Usage: aria2c [OPTIONS] [URI | MAGNET | TORRENT_FILE | METALINK_FILE]...
+See 'aria2c -h'.
+D:\project_codex\260814_animeinstall_auto\tools\aria2\aria2c.exe: unknown option -- hls-segment-threads=16
+2026-09-01 18:09:47   再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4 线路4: 交给 ffmpeg (M3U8) https://v3.ppqrrs.com/wjv3/202608/30/2QESjxmk4J95/video/index.m3u8...
+2026-09-01 18:13:45   再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4 线路4: ffmpeg 失败 exit=1: 完成文件改名失败: EPERM: operation not permitted, rename 'D:\idm下载\8_再见，拉拉1-8\再见，拉拉 第09集 - 在线播放 - AGE动漫_L4.part.mp4' -> 'D:\idm下载\8_再见，拉拉1-8\再见，拉拉 第09集 - 在线播放 - AGE动漫_L4.mp4'
+2026-09-01 18:15:18   再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4 线路5: 交给 aria2 (M3U8) https://v.lzcdn31.com/20260830/10792_faaa52e1/index.m3u8...
+2026-09-01 18:15:18   再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4 线路5: aria2 失败 exit=28: Usage: aria2c [OPTIONS] [URI | MAGNET | TORRENT_FILE | METALINK_FILE]...
+See 'aria2c -h'.
+D:\project_codex\260814_animeinstall_auto\tools\aria2\aria2c.exe: unknown option -- hls-segment-threads=16
+2026-09-01 18:15:18   再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4 线路5: 交给 ffmpeg (M3U8) https://v.lzcdn31.com/20260830/10792_faaa52e1/index.m3u8...
+2026-09-01 18:16:03   再见，拉拉 第09集 - 在线播放 - AGE动漫.mp4 线路5: ffmpeg 失败 exit=1: 完成文件改名失败: EPERM: operation not permitted, rename 'D:\idm下载\8_再见，拉拉1-8\再见，拉拉 第09集 - 在线播放 - AGE动漫_L5.part.mp4' -> 'D:\idm下载\8_再见，拉拉1-8\再见，拉拉 第09集 - 在线播放 - AGE动漫_L5.mp4'
+2026-09-01 18:16:04 穹庐下的魔女: 站内最新 10，本次下载 10（downloaded_end=9，单次上限 10，并发 3）
+2026-09-01 18:16:13   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路1: 交给 aria2 (MP4) https://v16s.hypstarcdn.com/5b0035c7f21cb7a030a5cda5ab92740f/6a96acc4/video/tos/alisg/tos-alisg-v-90...
+2026-09-01 18:16:14   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路1: aria2 失败 exit=16
+2026-09-01 18:16:14   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路1: 交给 ffmpeg (MP4) https://v16s.hypstarcdn.com/5b0035c7f21cb7a030a5cda5ab92740f/6a96acc4/video/tos/alisg/tos-alisg-v-90...
+2026-09-01 18:19:28   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路1: ffmpeg 失败 exit=1: 完成文件改名失败: EPERM: operation not permitted, rename 'D:\idm下载\8_穹庐下的魔女1-9\穹庐下的魔女 第10集 - 在线播放 - AGE动漫.part.mp4' -> 'D:\idm下载\8_穹庐下的魔女1-9\穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4'
+2026-09-01 18:19:59   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路2: 交给 aria2 (M3U8) https://vip.ffzy-plays.com/20260830/57628_8998bab6/index.m3u8...
+2026-09-01 18:20:00   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路2: aria2 失败 exit=28: Usage: aria2c [OPTIONS] [URI | MAGNET | TORRENT_FILE | METALINK_FILE]...
+See 'aria2c -h'.
+D:\project_codex\260814_animeinstall_auto\tools\aria2\aria2c.exe: unknown option -- hls-segment-threads=16
+2026-09-01 18:20:00   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路2: 交给 ffmpeg (M3U8) https://vip.ffzy-plays.com/20260830/57628_8998bab6/index.m3u8...
+2026-09-01 18:23:20   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路2: ffmpeg 失败 exit=1: 完成文件改名失败: EPERM: operation not permitted, rename 'D:\idm下载\8_穹庐下的魔女1-9\穹庐下的魔女 第10集 - 在线播放 - AGE动漫_L2.part.mp4' -> 'D:\idm下载\8_穹庐下的魔女1-9\穹庐下的魔女 第10集 - 在线播放 - AGE动漫_L2.mp4'
+2026-09-01 18:24:52   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路3: 交给 aria2 (M3U8) https://fengbao12.com/video/qiongluxiademonv/d77ad42c67c9/index.m3u8...
+2026-09-01 18:24:52   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路3: aria2 失败 exit=28: Usage: aria2c [OPTIONS] [URI | MAGNET | TORRENT_FILE | METALINK_FILE]...
+See 'aria2c -h'.
+D:\project_codex\260814_animeinstall_auto\tools\aria2\aria2c.exe: unknown option -- hls-segment-threads=16
+2026-09-01 18:24:52   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路3: 交给 ffmpeg (M3U8) https://fengbao12.com/video/qiongluxiademonv/d77ad42c67c9/index.m3u8...
+2026-09-01 18:26:30   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路3: ffmpeg 失败 exit=1: 完成文件改名失败: EPERM: operation not permitted, rename 'D:\idm下载\8_穹庐下的魔女1-9\穹庐下的魔女 第10集 - 在线播放 - AGE动漫_L3.part.mp4' -> 'D:\idm下载\8_穹庐下的魔女1-9\穹庐下的魔女 第10集 - 在线播放 - AGE动漫_L3.mp4'
+2026-09-01 18:28:02   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路4: 交给 aria2 (M3U8) https://v6.ppqrrs.com/wjv6/202608/30/YKPjLMumsq88/video/index.m3u8...
+2026-09-01 18:28:02   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路4: aria2 失败 exit=28: Usage: aria2c [OPTIONS] [URI | MAGNET | TORRENT_FILE | METALINK_FILE]...
+See 'aria2c -h'.
+D:\project_codex\260814_animeinstall_auto\tools\aria2\aria2c.exe: unknown option -- hls-segment-threads=16
+2026-09-01 18:28:02   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路4: 交给 ffmpeg (M3U8) https://v6.ppqrrs.com/wjv6/202608/30/YKPjLMumsq88/video/index.m3u8...
+2026-09-01 18:32:35   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路4: ffmpeg 失败 exit=1: 完成文件改名失败: EPERM: operation not permitted, rename 'D:\idm下载\8_穹庐下的魔女1-9\穹庐下的魔女 第10集 - 在线播放 - AGE动漫_L4.part.mp4' -> 'D:\idm下载\8_穹庐下的魔女1-9\穹庐下的魔女 第10集 - 在线播放 - AGE动漫_L4.mp4'
+2026-09-01 18:34:07   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路5: 交给 aria2 (M3U8) https://v.lzcdn31.com/20260830/10735_3334c277/index.m3u8...
+2026-09-01 18:34:07   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路5: aria2 失败 exit=28: Usage: aria2c [OPTIONS] [URI | MAGNET | TORRENT_FILE | METALINK_FILE]...
+See 'aria2c -h'.
+D:\project_codex\260814_animeinstall_auto\tools\aria2\aria2c.exe: unknown option -- hls-segment-threads=16
+2026-09-01 18:34:07   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路5: 交给 ffmpeg (M3U8) https://v.lzcdn31.com/20260830/10735_3334c277/index.m3u8...
+2026-09-01 18:35:05   穹庐下的魔女 第10集 - 在线播放 - AGE动漫.mp4 线路5: ffmpeg 失败 exit=1: 完成文件改名失败: EPERM: operation not permitted, rename 'D:\idm下载\8_穹庐下的魔女1-9\穹庐下的魔女 第10集 - 在线播放 - AGE动漫_L5.part.mp4' -> 'D:\idm下载\8_穹庐下的魔女1-9\穹庐下的魔女 第10集 - 在线播放 - AGE动漫_L5.mp4'
+2026-09-01 18:35:06 Re：从零开始的异世界生活 第四季 丧失篇: 无新集（downloaded_end=14，站内 14）
+2026-09-01 18:35:06 待下载清单已写: D:\project_codex\260814_animeinstall_auto\local\待下载清单.csv（2 行）

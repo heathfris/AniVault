@@ -14,30 +14,30 @@
       "site_id": 20260200,
       "update_time": "00:00",
       "downloaded_start": 1,
-      "downloaded_end": 7,
-      "site_latest": 7,
+      "downloaded_end": 8,
+      "site_latest": 8,
       "file_name": "{name}_{ep}.mp4"
-    },
-    "感谢对战 大小姐才不玩格斗游戏": {
-      "site_id": 20260201,
-      "update_time": "19:30",
-      "downloaded_start": 1,
-      "downloaded_end": 5,
-      "site_latest": 5
     },
     "再见，拉拉": {
       "site_id": 20260166,
       "update_time": "23:30",
       "downloaded_start": 1,
-      "downloaded_end": 6,
-      "site_latest": 6
+      "downloaded_end": 8,
+      "site_latest": 9
     },
     "穹庐下的魔女": {
       "site_id": 20260187,
       "update_time": "22:30",
       "downloaded_start": 1,
-      "downloaded_end": 8,
-      "site_latest": 8
+      "downloaded_end": 9,
+      "site_latest": 10
+    },
+    "Re：从零开始的异世界生活 第四季 丧失篇": {
+      "site_id": 20260066,
+      "update_time": "22:30",
+      "downloaded_start": 1,
+      "downloaded_end": 14,
+      "site_latest": 14
     }
   }
 }

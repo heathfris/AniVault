@@ -1,5 +1,7 @@
 # AniVault 无窗口计划任务启动设计
 
+> 历史设计，现已实现。当前计划任务仍使用 `scripts/auto-run.vbs`；当前版本和完整操作说明以根目录 `README.md`、`使用说明.md` 为准。
+
 ## 目标
 
 让 Windows 计划任务 `AniVaultAutoRun` 在用户已登录时执行自动追更，但不创建命令行窗口或 Windows Terminal 标签。保留现有 `scripts/auto-run.cmd`，供人工调试使用。

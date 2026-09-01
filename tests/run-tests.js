@@ -294,27 +294,24 @@ async function testDownloadEpisodeUsesAnimeSiteId() {
   }
 }
 
-async function testM3u8UsesAria2WithHls() {
+async function testM3u8UsesFfmpegDirectly() {
   const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'age-anime-test-'));
   try {
-    const calls = [];
-    let ffmpeg = 0;
+    const order = [];
     const anime = { title: 'Test Anime', site_id: 12345, downloaded_end: 1 };
     const result = await downloadEpisode(anime, 2, folder, {
       getPlayUrl: async () => 'https://example.test/playlist.m3u8',
-      callAria2: (url, dir, filename, headers, isM3u8) => {
-        calls.push({ url, isM3u8 });
+      callAria2: () => { order.push('aria2'); return { status: 1, stderr: 'unsupported' }; },
+      callFfmpeg: (url, dir, filename) => {
+        order.push('ffmpeg');
         fs.writeFileSync(path.join(dir, filename), 'stub');
         return { status: 0 };
       },
-      callFfmpeg: () => { ffmpeg += 1; },
       runMode: 'interactive',
       waitForFile: async () => ({ ok: true, size: 100 * 1024 * 1024 }),
     });
     assert.equal(result.src, 1);
-    assert.equal(calls.length, 1);
-    assert.equal(calls[0].isM3u8, true);
-    assert.equal(ffmpeg, 0);
+    assert.deepEqual(order, ['ffmpeg']);
   } finally {
     fs.rmSync(folder, { recursive: true, force: true });
   }
@@ -503,7 +500,7 @@ async function testM3u8NeverUsesIdm() {
       callAria2: () => { order.push('aria2'); return { status: 1, stderr: 'x' }; },
       waitForFile: async () => ({ ok: true, size: 100 * 1024 * 1024 }),
     });
-    assert.deepEqual(order, ['aria2', 'ffmpeg']);
+    assert.deepEqual(order, ['ffmpeg']);
     assert.equal(result.engine, 'ffmpeg');
   } finally {
     fs.rmSync(folder, { recursive: true, force: true });
@@ -676,8 +673,8 @@ Promise.resolve()
   .then(() => console.log('PASS 未传 attemptTimeoutMs 用默认 45 分钟兜底'))
   .then(testDownloadEpisodeUsesAnimeSiteId)
   .then(() => console.log('PASS downloadEpisode uses anime.site_id'))
-  .then(testM3u8UsesAria2WithHls)
-  .then(() => console.log('PASS M3U8 uses aria2 with HLS'))
+  .then(testM3u8UsesFfmpegDirectly)
+  .then(() => console.log('PASS M3U8 直接使用 ffmpeg'))
   .then(testAria2FailureFallsBackToFfmpeg)
   .then(() => console.log('PASS aria2 failure falls back to ffmpeg'))
   .then(testPasswordAndInteractiveMp4BothUseAria2)

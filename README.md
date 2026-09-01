@@ -1,4 +1,4 @@
-# 番仓 AniVault（0.10.1）
+# 番仓 AniVault（0.10.2）
 
 AGE 动漫自动追更下载器的新桌面面板：查看/修改/保存配置，触发 dry-run 或下载、停止运行、看实时日志与待下载清单、打开下载目录。0.3.0 起下载引擎改为 aria2。
 
@@ -7,7 +7,7 @@ AGE 动漫自动追更下载器的新桌面面板：查看/修改/保存配置�
 - 全局设置与追番清单增删改查，保存前逐字段校验、原子写盘、未知字段保留
 - 下载目录可在面板“下载目录（AGE_DLOAD）”中配置，环境变量 `AGE_DLOAD` 存在时优先；留空使用 `D:\\idm下载`
 - 运行控制：Dry-run 检查更新 / 立即下载 / 停止，单实例锁防重复任务
-- 下载引擎可切换：`defaults.download_engine`（aria2 / idm / ffmpeg，默认 aria2），面板下拉选择；MP4 所选引擎优先，失败按 aria2→ffmpeg→idm 兜底；M3U8 只用 ffmpeg/aria2（永不走 IDM）；IDM 仅面板交互模式生效
+- 下载引擎可切换：`defaults.download_engine`（aria2 / idm / ffmpeg，默认 aria2），面板下拉选择；MP4 所选引擎优先并按可用链路兜底；M3U8 固定使用 ffmpeg，避免调用不支持 HLS 的 aria2；IDM 仅面板交互模式生效
 - 并发下载：`defaults.max_parallel`（默认 1，范围 1-10，推荐 3），缺失集按并发池下载
 - 部分成功也推进进度：`downloaded_end` 更新为原 end 与本次成功/已存在集最高编号的较大值；失败集留待 `auto_repair` 自动补下
 - 下载完成改名遇到 Windows 临时占用时自动重试；再次运行会从 `.part.mp4` 中复用时长完整的候选，明显短于上一集的残缺视频不会推进进度
@@ -32,6 +32,7 @@ AGE 动漫自动追更下载器的新桌面面板：查看/修改/保存配置�
 - 维护修复（0.9.3）：界面版本徽标与 `VERSION` 同步；`pnpm test` 统一运行主流程、Node test runner 和 UI 检查；截图命令内置当前 Windows 环境所需的 Chromium Viz 兼容参数
 - 首页时间校验（0.9.4）：只接受严格的 `HH:MM`，不再把 `2026` 等年份误写入番剧的 `update_time`
 - mpv观看同步（0.10.0）：面板可选安装、检查、启停、更新和卸载内置mpv模块；`folder_name`加入一个`{watched}`后，正常关闭mpv时按“真实播放时长90%且最大播放位置90%”更新观看前缀。安装后默认停用，不覆盖外部修改的部署文件
+- 下载链路校正（0.10.2）：M3U8 直接使用 ffmpeg，不再先调用本机 aria2 的无效 HLS 参数；`pnpm test` 只发现仓库测试，不误跑 `local/` 第三方文件；同步校正版本、安装状态和文档。
 - downloaded_start 自动规则：文件夹已有 ≥1 集 → 1，0 集 → 0（数不出集数时不改）
 - 日志区只显示 PROGRESS 末尾（BLOCKED 仍照常写入文件）
 - 实时日志（PROGRESS 末尾，上滚不拉回）、待下载清单表格、打开下载目录
@@ -49,7 +50,7 @@ agedm.io 偶发 fetch failed 时：
 ## 环境
 
 - Windows；Node.js 与 pnpm（本机不在系统 PATH，运行前先把自带运行时加进 PATH）
-- aria2 已随项目放在 `tools/aria2/aria2c.exe`（不进入 git）；ffmpeg 在 `tools/ffmpeg/` 作兜底
+- aria2 已随项目放在 `tools/aria2/aria2c.exe`（不进入 git），用于单文件媒体；ffmpeg 在 `tools/ffmpeg/`，负责 M3U8 并作为 MP4 兜底
 
 ## 安装与运行
 
@@ -67,4 +68,4 @@ pnpm run smoke      # 打开窗口，加载成功打印 SMOKE_OK 并退出 0
 pnpm run selftest   # 配置临时副本读写 + 假脚本运行端到端，打印 SELFTEST_OK
 ```
 
-当前版本 0.10.1，版本记录见使用说明.md 文末。mpv模块源码和专项说明见 `integrations/mpv-watched-prefix/`；本次开发未自动安装到本机mpv。
+当前版本 0.10.2，版本记录见使用说明.md 文末。mpv模块源码和专项说明见 `integrations/mpv-watched-prefix/`。2026-09-01 本机核验：模块已安装到 `F:\Backend\mpv.lite`、处于启用状态且部署哈希匹配；换电脑或换目录时仍应以面板“检查状态”为准。
