@@ -9,7 +9,7 @@ const { validateConfig } = require('../src/config/validator.js');
 const { createRunner } = require('../src/runner.js');
 const { readCsv, removeCsvRow } = require('../src/csv.js');
 const { tailFileFast } = require('../src/logutil.js');
-const { syncSchedule, queryTask, TASK_NAME } = require('../src/schedule.js');
+const { syncSchedule, queryTask, detectLegacyTask, TASK_NAME } = require('../src/schedule.js');
 const { countEpisodeFiles, findFolder } = require('../anime_updater.js');
 const { summarize } = require('../src/summary.js');
 const { createManager: createMpvSyncManager } = require('../src/mpv-watched-prefix-manager.js');
@@ -310,7 +310,15 @@ function registerIpc() {
 
   ipcMain.handle('schedule:status', () => {
     const q = queryTask();
-    return { taskName: TASK_NAME, exists: q.exists, output: q.output };
+    const legacy = detectLegacyTask();
+    return {
+      taskName: TASK_NAME,
+      exists: q.exists,
+      output: q.output,
+      legacyTaskName: legacy.taskName,
+      legacyExists: legacy.exists,
+      legacyOutput: legacy.output,
+    };
   });
 
   ipcMain.handle('run:start', (_e, mode) => {
