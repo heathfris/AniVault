@@ -37,7 +37,9 @@ function callAria2(url, folder, filename, headers = {}, deps = {}) {
   const output = path.join(folder, filename); const tempOutput = getFfmpegTempPath(output);
   try { fs.rmSync(tempOutput, { force: true }); } catch (e) {}
   const args = ['-x', '16', '-s', '16', '-k', '1M', '-c', '--no-conf', '--auto-file-renaming=false'];
-  if (headerText) args.push('--header', headerText);
+  if (headerText) {
+    for (const line of headerText.split('\r\n')) args.push('--header', line);
+  }
   args.push('-d', folder, '-o', path.basename(tempOutput), url);
   const result = (deps.spawnSync || spawnSync)(deps.aria2Path || 'aria2c.exe', args, { encoding: 'utf8', windowsHide: true, timeout: deps.timeoutMs || 45 * 60 * 1000, maxBuffer: 1024 * 1024 });
   const stderr = (result.stderr || result.error?.message || '').trim();
