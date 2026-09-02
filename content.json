@@ -17,7 +17,7 @@
       "downloaded_start": 1,
       "downloaded_end": 8,
       "site_latest": 8,
-      "folder_name": "{watched}_{name}{start}_{end}",
+      "folder_name": "{watched}_{name}{start}-{end}",
       "file_name": "{name}_{ep}.mp4"
     },
     "再见，拉拉": {
@@ -26,7 +26,7 @@
       "downloaded_start": 1,
       "downloaded_end": 9,
       "site_latest": 9,
-      "folder_name": "{watched}_{name}{start}_{end}",
+      "folder_name": "{watched}_{name}{start}-{end}",
       "file_name": "{name}_{ep}.mp4"
     },
     "穹庐下的魔女": {
@@ -35,7 +35,7 @@
       "downloaded_start": 1,
       "downloaded_end": 10,
       "site_latest": 10,
-      "folder_name": "{watched}_{name}{start}_{end}",
+      "folder_name": "{watched}_{name}{start}-{end}",
       "file_name": "{name}_{ep}.mp4"
     },
     "Re：从零开始的异世界生活 第四季 丧失篇": {
@@ -44,14 +44,14 @@
       "downloaded_start": 1,
       "downloaded_end": 14,
       "site_latest": 14,
-      "folder_name": "{watched}_{name}{start}_{end}",
+      "folder_name": "{watched}_{name}{start}-{end}",
       "file_name": "{name}_{ep}.mp4"
     },
     "淡岛百景": {
       "downloaded_start": 1,
       "downloaded_end": 12,
       "site_latest": 12,
-      "folder_name": "{watched}_{name}{start}_{end}",
+      "folder_name": "{watched}_{name}{start}-{end}",
       "file_name": "{name}_{ep}.mp4",
       "enabled": false
     },
@@ -59,7 +59,7 @@
       "downloaded_start": 1,
       "downloaded_end": 6,
       "site_latest": 6,
-      "folder_name": "{watched}_{name}{start}_{end}",
+      "folder_name": "{watched}_{name}{start}-{end}",
       "file_name": "{name}_{ep}.mp4",
       "enabled": false
     }

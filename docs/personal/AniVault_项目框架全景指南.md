@@ -1,6 +1,6 @@
 # 番仓 AniVault 项目框架全景指南
 
-> 基于当前工作区源码整理，代码版本以 `package.json`、`VERSION` 和界面版本徽标为准，当前为 **0.11.1**。本文描述的是项目现在真实存在的结构和调用链，不是未来设想。
+> 基于当前工作区源码整理，代码版本以 `package.json`、`VERSION` 和界面版本徽标为准，当前为 **0.12.0**。本文描述的是项目现在真实存在的结构和调用链，不是未来设想。
 
 ## 1. 先用一句话理解这个项目
 
@@ -39,6 +39,9 @@ flowchart TB
         SCH[src/schedule.js]
         CSV[src/csv.js]
         SUM[src/summary.js]
+        FOLD[src/folders.js]
+        SITE[src/site.js]
+        DOWN[src/download.js]
         MPVM[src/mpv-watched-prefix-manager.js]
     end
 
@@ -77,6 +80,9 @@ flowchart TB
     M --> CSV
     M --> SUM
     M --> MPVM
+    A --> FOLD
+    A --> SITE
+    A --> DOWN
     A <--> C
     A --> PROG
     A --> BLOCK
@@ -152,7 +158,7 @@ state
 └─ mpvSync      mpv 扩展状态
 ```
 
-页面启动后会执行 `load()`，读取配置、环境信息、运行状态、CSV 和 mpv 状态；之后每秒执行一次 `poll()`，刷新子进程状态和日志。
+页面启动后会执行 `load()`，读取配置、环境信息、运行状态、CSV 和 mpv 状态；随后订阅 `run:started`、`run:episode`、`run:log`、`run:finished` 四类运行事件，并每7秒执行 `syncSnapshot()` 校准子进程状态和日志。
 
 这一层不应该承担的事情：
 
@@ -258,17 +264,20 @@ EP_STATUS\t{"title":"...","ep":1,"status":"downloading"}
 | `schedule.js` | 构造并执行 `schtasks.exe` 命令 | 不读页面，不运行下载器 |
 | `csv.js` | 解析 CSV、删除精确行、读取文本尾部 | 不决定哪些集应该下载 |
 | `summary.js` | 计算“已下载/总数”显示值 | 不扫描目录；扫描由调用者完成 |
+| `folders.js` | 模板解析、目录与集数文件匹配、安全改名 | 不访问站点，不决定下载计划 |
+| `site.js` | AGE 搜索、首页时间、集数与播放地址解析 | 不写配置，不启动下载器 |
+| `download.js` | 下载器链路、临时文件恢复、稳定性检查和并发池 | 不决定番剧缺哪些集 |
 | `logutil.js` | 追加日志、超过 2000 行时轮转、快速读尾部 | 不判断日志内容 |
 | `folder-rename-lock.js` | 为下载器和 mpv 提供共享改名锁 | 不执行具体命名策略 |
 | `mpv-watched-prefix-manager.js` | 安全部署和管理 mpv 脚本 | 不采样播放进度，不直接改动漫目录 |
 
-这一层体现了项目当前的模块化边界：能被桌面端或扩展独立复用、能单独测试的能力，逐步放进 `src/`；但核心追更流程仍集中在 `anime_updater.js`。
+这一层体现了项目当前的模块化边界：通用文件夹、站点和下载能力已经从主入口拆出并可单独测试；`anime_updater.js` 负责把这些能力按追更流程编排起来。
 
 ### 4.5 第五层：核心业务与基础设施混合层
 
 对应文件：`anime_updater.js`
 
-这是整个项目最重要的文件，约 1100 行。它既是命令行入口，又包含业务规则、网站适配、下载器适配和文件系统操作。
+这是整个项目的命令行入口和追更编排文件，当前约 585 行。网站、文件夹和下载器的具体实现已分别下沉到 `src/site.js`、`src/folders.js`、`src/download.js`，入口保留兼容包装函数、配置写回、缺集规划和单番/全局编排。
 
 内部可以按职责理解成九个区域：
 
@@ -277,27 +286,21 @@ EP_STATUS\t{"title":"...","ep":1,"status":"downloading"}
    - `getDownloadDir()`：`AGE_DLOAD > content.download_dir > D:\idm下载`。
    - 解析 CSV、ffmpeg、aria2、日志和锁路径。
 
-2. 网络访问
-   - `fetchText()`：30 秒超时，普通网络错误重试一次，超时不重试。
-   - 请求带 `Connection: close` 和浏览器 User-Agent。
+2. 网络访问包装
+   - `fetchText()` 等包装函数把环境路径、浏览器和日志依赖传给 `src/site.js`。
+   - 30 秒超时、普通网络错误重试和请求头等细节以 `src/site.js` 为准。
 
-3. AGE 网站适配
-   - `searchSite()`：按片名搜索站内条目。
-   - `parseHomeUpdateTimes()`：只接受严格 `HH:MM`。
-   - `getMaxEp()`：从详情页得到指定线路的最大集数。
-   - `getPlayUrl()`：用无头 Edge 监听媒体请求并读取播放器页面。
+3. AGE 网站适配入口
+   - `searchSite()`、`parseHomeUpdateTimes()`、`getMaxEp()`、`getPlayUrl()` 保留为编排层兼容入口。
+   - HTML 解析、请求和浏览器池实现在 `src/site.js`。
 
-4. 命名和文件夹匹配
-   - `applyTemplate()`：套用文件夹或文件名模板。
-   - `matchFolderTemplate()`：从现有目录名反解析模板变量。
-   - `resolveFolderName()`、`resolveFileName()`：生成目标名称。
-   - `findFolder()`、`getEpisodeFileMatcher()`：定位番剧目录和集数文件。
+4. 命名和文件夹匹配入口
+   - 模板、目录、集数文件和安全改名实现在 `src/folders.js`。
+   - 主入口只注入下载根目录和共享锁路径。
 
-5. 下载器适配
-   - `callAria2()`、`callFfmpeg()`、`callIdm()`。
-   - `engineChain()` 决定尝试顺序。
-   - M3U8 固定使用 ffmpeg。
-   - 非交互运行不会尝试 IDM。
+5. 下载器适配入口
+   - aria2、ffmpeg、IDM、引擎链、临时文件恢复和并发池实现在 `src/download.js`。
+   - 主入口注入工具路径、超时、日志、站点取址和文件夹依赖。
 
 6. 下载可靠性
    - 五条播放线路依次兜底。
@@ -316,7 +319,7 @@ EP_STATUS\t{"title":"...","ep":1,"status":"downloading"}
 9. 程序入口
    - `main()` 识别 `--dry-run` 和旧式 `--install-task`，准备日志，读取配置并进入全局编排。
 
-需要特别理解：所谓“核心层”和“基础设施层”在这个项目里还没有完全分开。例如 `processOneAnime()` 是业务逻辑，但同一文件里的 `callFfmpeg()` 是外部工具适配。这是当前真实结构，不影响使用，但会增加阅读这个文件的难度。
+需要特别理解：`anime_updater.js` 中仍保留同名兼容包装函数，因此搜索函数名时会同时看到编排入口和 `src/` 实现。判断具体行为时先看包装函数委托到哪个模块，再进入对应模块。
 
 ### 4.6 第六层：外部集成与运行环境
 
@@ -355,7 +358,7 @@ sequenceDiagram
     W->>R: 加载 index.html + renderer.js
     R->>E: 读取配置、环境、CSV、运行状态
     E-->>R: 返回本地数据
-    R->>R: 渲染页面，每秒轮询
+    R->>R: 渲染页面，订阅运行事件并每7秒校准快照
 ```
 
 这时还没有开始查网站或下载视频。
@@ -385,7 +388,7 @@ sequenceDiagram
     A->>D: aria2 / ffmpeg / IDM 下载
     A->>FS: 更新日志、CSV、配置、文件夹名
     A-->>M: stdout 状态行
-    M-->>R: 轮询结果和每集状态
+    M-->>R: 推送启动、日志、每集状态和结束事件
     RN->>FS: 子进程退出后释放 run.lock
 ```
 
@@ -612,7 +615,7 @@ dry-run？是 → 返回
 
 `auto-run.vbs` 根据自身路径向上寻找项目根目录，因此项目目录移动后脚本本身不需要写死新路径；但计划任务保存的是 VBS 的绝对路径，所以移动项目后仍需从新目录启动面板并保存一次。
 
-根更新器中还保留 `AGEAnimeUpdater`、`--install-task`、`task_state.json` 这条旧任务链。当前面板的 `src/schedule.js` 不使用它。阅读代码时要把“兼容遗留代码”和“当前桌面主路径”分开。
+根更新器中还保留 `AGEAnimeUpdater`、`--install-task`、`task_state.json` 这条旧任务链。`src/schedule.js` 和 Electron IPC 现已提供只读检测与安全迁移入口：存在旧任务时先创建或更新 `AniVaultAutoRun`，查询确认成功后仍保留旧任务、状态文件和兼容函数，等待人工决定是否弃用。阅读代码时仍要把兼容入口和当前桌面主路径分开。
 
 ## 12. mpv 观看同步子系统
 
@@ -673,7 +676,7 @@ enabled
 - 有效观看累计达到视频时长的 45%。
 - 最大播放位置达到视频时长的 90%。
 
-这两个条件必须同时满足。README 的当前版本说明已经记录 0.11.1 的 45% + 90% 规则；其中 0.10.0 的旧版本记录仍保留当时的双 90% 历史口径。理解现在的运行行为时，应看 0.11.1 说明、当前代码和测试，不要把旧版本记录当成当前规则。
+这两个条件必须同时满足。README 与使用说明的当前能力已记录 45% + 90% 规则；其中 0.10.0 的旧版本记录仍保留当时的双 90% 历史口径。理解现在的运行行为时，应看当前说明、代码和测试，不要把旧版本记录当成当前规则。
 
 启用观看同步还要求某部番的 `folder_name` 中恰好出现一次 `{watched}`。没有该占位符表示不参与；多个占位符会被配置校验拒绝。
 
@@ -696,13 +699,16 @@ enabled
 ├─ renderer/
 │  ├─ index.html                    页面结构
 │  ├─ styles.css                    页面样式与响应式布局
-│  └─ renderer.js                   页面状态、表单和轮询
+│  └─ renderer.js                   页面状态、表单、运行事件和快照校准
 ├─ src/
 │  ├─ config/validator.js           配置边界校验
 │  ├─ runner.js                     子进程与单实例锁
 │  ├─ schedule.js                   Windows 计划任务
 │  ├─ csv.js                        CSV 读写
 │  ├─ summary.js                    清单汇总
+│  ├─ folders.js                    模板、目录与集数文件操作
+│  ├─ site.js                       AGE 页面与播放地址适配
+│  ├─ download.js                   下载器链路与恢复逻辑
 │  ├─ logutil.js                    日志追加、轮转、读尾
 │  ├─ folder-rename-lock.js         共享目录改名锁
 │  └─ mpv-watched-prefix-manager.js mpv 部署状态机
@@ -796,12 +802,12 @@ node tests/run-tests.js
 
 ### 限制
 
-- `anime_updater.js` 过于集中，业务规则、网站解析、下载器和文件系统耦合较高。
+- `anime_updater.js` 已拆出文件夹、站点和下载能力，但单番与全局追更编排、配置写回和旧任务兼容入口仍集中在一个文件。
 - AGE 页面的 HTML、播放器 frame 和媒体请求特征一变，解析逻辑可能失效。
 - Edge 与 IDM 路径带有本机默认值，跨电脑需要重新核对。
 - JSON 和 CSV 没有事务数据库提供的并发一致性，只靠进程边界、原子写和锁保护关键路径。
-- renderer 通过每秒轮询获取多数状态，不是完整的事件驱动状态同步。
-- 新旧两套计划任务代码共存，容易让维护者误读。
+- renderer 的运行中状态优先依赖事件推送，同时保留7秒快照校准；窗口重载或事件丢失后的短暂显示可能滞后。
+- 新旧两套计划任务代码仍共存；迁移入口只复制并验证现役任务，不自动删除遗留任务和状态文件。
 - README 中同页保留了 mpv 旧版和新版门槛，阅读时要结合版本号，后续行为变更仍需同步所有当前说明入口。
 - 当前只适配一个站点，多站点扩展和安装包仍属于明确未完成范围。
 
@@ -816,10 +822,10 @@ node tests/run-tests.js
 | 新增配置字段 | renderer 收集/渲染 + validator + updater + 文档 + 测试 |
 | 改计划任务行为 | `src/schedule.js`、启动脚本、相关 IPC |
 | 改进程单实例或停止逻辑 | `src/runner.js` |
-| 改 AGE 页面解析 | `anime_updater.js` 网站适配函数 |
+| 改 AGE 页面解析 | `src/site.js` + `anime_updater.js` 的依赖注入包装 |
 | 改缺集和进度规则 | `processOneAnime()` 及规划辅助函数 |
-| 改下载器优先级 | `engineChain()`、`downloadEpisode()` |
-| 改文件/文件夹模板 | updater 模板函数 + validator + mpv 匹配逻辑 |
+| 改下载器优先级 | `src/download.js` 的 `engineChain()`、`downloadEpisode()` |
+| 改文件/文件夹模板 | `src/folders.js` + validator + mpv 匹配逻辑 |
 | 改日志和轮转 | `src/logutil.js` |
 | 改待下载 CSV | updater 写入 + `src/csv.js` + main IPC + renderer 表格 |
 | 改 mpv 安装管理 | `src/mpv-watched-prefix-manager.js` |
@@ -848,10 +854,10 @@ HTML 控件
 2. `README.md`：知道产品当前范围。
 3. `electron/main.js` 的 `registerIpc()`：看桌面端能做什么。
 4. `electron/preload.js`：看页面和系统之间的接口。
-5. `renderer/renderer.js` 的 `load()`、`save()`、`poll()`、`startRun()`：看用户动作怎样发出。
+5. `renderer/renderer.js` 的 `load()`、`save()`、`subscribeRunEvents()`、`syncSnapshot()`、`startRun()`：看用户动作和运行状态怎样往返。
 6. `src/runner.js`：看更新器怎样成为独立子进程。
 7. `anime_updater.js` 的 `main()`、`processAllAnime()`、`processOneAnime()`：先看总编排。
-8. `downloadEpisode()`、`getPlayUrl()`、三个下载器函数：再看下载细节。
+8. `src/folders.js`、`src/site.js`、`src/download.js`：再看目录、站点和下载细节。
 9. `src/config/validator.js` 和测试：确认数据边界。
 10. 有观看同步需求时再读 mpv 三个核心文件。
 
