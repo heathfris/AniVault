@@ -10,7 +10,7 @@ const { createRunner } = require('../src/runner.js');
 const { readCsv, removeCsvRow } = require('../src/csv.js');
 const { tailFileFast } = require('../src/logutil.js');
 const {
-  syncSchedule, queryTask, detectLegacyTask, migrateLegacyTask, TASK_NAME,
+  syncSchedule, queryTask, TASK_NAME,
 } = require('../src/schedule.js');
 const { countEpisodeFiles, findFolder } = require('../anime_updater.js');
 const { summarize } = require('../src/summary.js');
@@ -312,23 +312,11 @@ function registerIpc() {
 
   ipcMain.handle('schedule:status', () => {
     const q = queryTask();
-    const legacy = detectLegacyTask();
     return {
       taskName: TASK_NAME,
       exists: q.exists,
       output: q.output,
-      legacyTaskName: legacy.taskName,
-      legacyExists: legacy.exists,
-      legacyOutput: legacy.output,
     };
-  });
-  ipcMain.handle('schedule:migrate-legacy', () => {
-    const cfg = readConfig(configFile());
-    if (!cfg.ok) return { ok: false, action: 'config-failed', output: cfg.error };
-    return migrateLegacyTask({
-      time: cfg.data.fetch_time,
-      launcherPath: path.join(appRoot(), 'scripts', 'auto-run.vbs'),
-    });
   });
 
   ipcMain.handle('run:start', (_e, mode) => {

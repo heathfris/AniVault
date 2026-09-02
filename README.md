@@ -1,4 +1,4 @@
-# 番仓 AniVault（0.12.0）
+# 番仓 AniVault（0.12.1）
 
 AGE 动漫自动追更下载器的本地桌面项目。面板用于维护追番配置、检查更新、执行下载、查看运行日志和管理待下载清单。
 
@@ -10,8 +10,8 @@ AGE 动漫自动追更下载器的本地桌面项目。面板用于维护追番�
 - 自动维护 `downloaded_start`、`downloaded_end`、`site_latest`，缺失集可按 `auto_repair` 补下。
 - 下载完成后按 `folder_name` / `file_name` 模板整理目录和文件；可选 mpv 观看同步。观看同步的达标条件是有效真实播放时长 45%，且最大播放位置 90%。
 - 面板通过运行事件实时显示启动、每集状态、日志和结束结果，并以 7 秒低频快照校准异常或重载后的状态；清单支持永久跳过或仅删除当前行。
-- 文件夹匹配、AGE 站点访问和下载链路已拆到 `src/folders.js`、`src/site.js`、`src/download.js`，`anime_updater.js` 保留主流程编排和兼容入口。
-- `fetch_time` 可创建、更新或删除 `AniVaultAutoRun` 计划任务；兼容入口可检测并迁移旧任务 `AGEAnimeUpdater`，迁移成功后仍保留旧任务等待人工确认。
+- 文件夹匹配、AGE 站点访问和下载链路已拆到 `src/folders.js`、`src/site.js`、`src/download.js`，`anime_updater.js` 保留主流程编排。
+- `fetch_time` 可创建、更新或删除 `AniVaultAutoRun` 计划任务；旧任务链已退役，运行模式由入口明确指定。
 
 ## 安装与运行
 

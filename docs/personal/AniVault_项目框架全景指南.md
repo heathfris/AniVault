@@ -1,6 +1,6 @@
 # 番仓 AniVault 项目框架全景指南
 
-> 基于当前工作区源码整理，代码版本以 `package.json`、`VERSION` 和界面版本徽标为准，当前为 **0.12.0**。本文描述的是项目现在真实存在的结构和调用链，不是未来设想。
+> 基于当前工作区源码整理，代码版本以 `package.json`、`VERSION` 和界面版本徽标为准，当前为 **0.12.1**。本文描述的是项目现在真实存在的结构和调用链，不是未来设想。
 
 ## 1. 先用一句话理解这个项目
 
@@ -317,7 +317,7 @@ EP_STATUS\t{"title":"...","ep":1,"status":"downloading"}
    - `processAllAnime()` 获取首页时刻表，逐部处理，写回配置和 CSV，最后关闭浏览器池。
 
 9. 程序入口
-   - `main()` 识别 `--dry-run` 和旧式 `--install-task`，准备日志，读取配置并进入全局编排。
+   - `main()` 识别 `--dry-run`，准备日志，读取配置并进入全局编排；未指定环境变量时手工入口默认 interactive。
 
 需要特别理解：`anime_updater.js` 中仍保留同名兼容包装函数，因此搜索函数名时会同时看到编排入口和 `src/` 实现。判断具体行为时先看包装函数委托到哪个模块，再进入对应模块。
 
@@ -615,7 +615,7 @@ dry-run？是 → 返回
 
 `auto-run.vbs` 根据自身路径向上寻找项目根目录，因此项目目录移动后脚本本身不需要写死新路径；但计划任务保存的是 VBS 的绝对路径，所以移动项目后仍需从新目录启动面板并保存一次。
 
-根更新器中还保留 `AGEAnimeUpdater`、`--install-task`、`task_state.json` 这条旧任务链。`src/schedule.js` 和 Electron IPC 现已提供只读检测与安全迁移入口：存在旧任务时先创建或更新 `AniVaultAutoRun`，查询确认成功后仍保留旧任务、状态文件和兼容函数，等待人工决定是否弃用。阅读代码时仍要把兼容入口和当前桌面主路径分开。
+旧任务链已退役，运行模式由入口明确指定。面板子进程传入 `AGE_RUN_MODE=interactive`，计划任务脚本传入 `AGE_RUN_MODE=password`，手工入口未指定时默认为 interactive；当前调度只管理 `AniVaultAutoRun`。
 
 ## 12. mpv 观看同步子系统
 
@@ -692,7 +692,6 @@ enabled
 ├─ 使用说明.md                      面向使用者的详细手册
 ├─ PROGRESS.md                      正常运行日志，用户现场数据
 ├─ BLOCKED.md                       异常与待裁决记录
-├─ task_state.json                  旧计划任务链状态
 ├─ electron/
 │  ├─ main.js                       Electron 主进程和 IPC
 │  └─ preload.js                    受控页面 API

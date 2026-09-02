@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const {
-  syncSchedule, buildCreateArgs, buildDeleteArgs, migrateLegacyTask,
+  syncSchedule, buildCreateArgs, buildDeleteArgs,
 } = require('../src/schedule.js');
 
 const TASK = 'AniVaultAutoRun';
@@ -115,84 +115,48 @@ test('Electron 保存配置时同步 VBS 启动器', () => {
   assert.doesNotMatch(main, /launcherPath:.*auto-run\.cmd/);
 });
 
-test('Electron 暴露旧任务迁移入口但不自动删除旧任务', () => {
+test('Electron 调度 IPC 只暴露当前任务状态和同步入口', () => {
   const main = fs.readFileSync(path.join(__dirname, '..', 'electron', 'main.js'), 'utf8');
   const preload = fs.readFileSync(path.join(__dirname, '..', 'electron', 'preload.js'), 'utf8');
-  assert.match(main, /ipcMain\.handle\('schedule:migrate-legacy'/);
-  assert.match(main, /migrateLegacyTask\(/);
-  assert.match(preload, /ipcRenderer\.invoke\('schedule:migrate-legacy'/);
-  assert.doesNotMatch(main, /migrateLegacyTask\([\s\S]*buildDeleteArgs/);
+  assert.match(main, /ipcMain\.handle\('schedule:status'/);
+  assert.doesNotMatch(main, /AGEAnimeUpdater|migrateLegacyTask|detectLegacyTask|schedule:migrate-legacy/);
+  assert.doesNotMatch(preload, /schedule:migrate-legacy|scheduleMigrateLegacy/);
 });
 
-test('旧任务不存在时返回未迁移且不创建新任务', () => {
-  const calls = [];
-  const st = fakeSchtasks((cmd, args) => {
-    calls.push(args);
-    return { status: 1, stdout: '', stderr: 'not found' };
-  });
-  const r = migrateLegacyTask({ time: '18:00', launcherPath: LAUNCHER, schtasks: st });
-  assert.equal(r.ok, true);
-  assert.equal(r.action, 'legacy-absent');
-  assert.equal(calls.some(a => a[0] === '/create'), false);
-});
-
-test('旧任务存在时先创建并验证新任务且保留旧任务', () => {
-  const calls = [];
-  const st = fakeSchtasks((cmd, args) => {
-    calls.push(args);
-    if (args[0] === '/query' && args.includes('AGEAnimeUpdater')) return { status: 0, stdout: 'old', stderr: '' };
-    if (args[0] === '/query') return { status: calls.filter(a => a[0] === '/query').length > 1 ? 0 : 1, stdout: 'new', stderr: '' };
-    return { status: 0, stdout: 'created', stderr: '' };
-  });
-  const r = migrateLegacyTask({ time: '18:00', launcherPath: LAUNCHER, schtasks: st });
-  assert.equal(r.ok, true);
-  assert.equal(r.action, 'migrated');
-  assert.equal(r.legacyPreserved, true);
-  assert.equal(calls[0][0], '/query');
-  assert.equal(calls[1][0], '/query');
-  assert.equal(calls[2][0], '/create');
-  assert.equal(calls[3][0], '/query');
-});
-
-test('新任务创建失败时返回诊断并保留旧任务', () => {
-  const st = fakeSchtasks((cmd, args) => {
-    if (args[0] === '/query' && args.includes('AGEAnimeUpdater')) return { status: 0, stdout: 'old', stderr: '' };
-    if (args[0] === '/query') return { status: 1, stdout: '', stderr: 'new missing' };
-    return { status: 1, stdout: '', stderr: 'ACCESS_DENIED' };
-  });
-  const r = migrateLegacyTask({ time: '18:00', launcherPath: LAUNCHER, schtasks: st });
+test('更新失败返回 schtasks 输出与手动命令', () => {
+  const st = fakeSchtasks((cmd, args) => args[0] === '/query'
+    ? { status: 0, stdout: 'exists', stderr: '' }
+    : { status: 1, stdout: '', stderr: 'UPDATE_DENIED' });
+  const r = syncSchedule({ time: '20:00', launcherPath: LAUNCHER, schtasks: st });
   assert.equal(r.ok, false);
   assert.equal(r.action, 'create-failed');
-  assert.equal(r.legacyPreserved, true);
-  assert.match(r.output, /ACCESS_DENIED/);
+  assert.match(r.output, /UPDATE_DENIED/);
+  assert.match(r.command, /AniVaultAutoRun/);
 });
 
-test('新任务创建后验证失败时返回诊断并保留旧任务', () => {
-  const st = fakeSchtasks((cmd, args) => {
-    if (args[0] === '/query' && args.includes('AGEAnimeUpdater')) return { status: 0, stdout: 'old', stderr: '' };
-    if (args[0] === '/query') return { status: 1, stdout: '', stderr: 'not visible' };
-    return { status: 0, stdout: 'created', stderr: '' };
-  });
-  const r = migrateLegacyTask({ time: '18:00', launcherPath: LAUNCHER, schtasks: st });
+test('删除失败返回 schtasks 输出与手动命令', () => {
+  const st = fakeSchtasks(() => ({ status: 1, stdout: '', stderr: 'DELETE_DENIED' }));
+  const r = syncSchedule({ time: '', launcherPath: LAUNCHER, schtasks: st });
   assert.equal(r.ok, false);
-  assert.equal(r.action, 'verify-failed');
-  assert.equal(r.legacyPreserved, true);
+  assert.equal(r.action, 'delete-failed');
+  assert.match(r.output, /DELETE_DENIED/);
+  assert.match(r.command, /AniVaultAutoRun/);
 });
 
-test('重复迁移保持幂等并继续保留旧任务', () => {
-  let newExists = false;
-  const st = fakeSchtasks((cmd, args) => {
-    if (args[0] === '/query' && args.includes('AGEAnimeUpdater')) return { status: 0, stdout: 'old', stderr: '' };
-    if (args[0] === '/query') return { status: newExists ? 0 : 1, stdout: 'new', stderr: '' };
-    newExists = true;
-    return { status: 0, stdout: 'updated', stderr: '' };
-  });
-  const first = migrateLegacyTask({ time: '18:00', launcherPath: LAUNCHER, schtasks: st });
-  const second = migrateLegacyTask({ time: '18:00', launcherPath: LAUNCHER, schtasks: st });
-  assert.equal(first.ok, true);
-  assert.equal(second.ok, true);
-  assert.equal(second.action, 'migrated');
-  assert.equal(second.legacyPreserved, true);
+test('查询当前任务保留存在状态和输出', () => {
+  const r = require('../src/schedule.js').queryTask(fakeSchtasks(() => ({ status: 0, stdout: 'ready', stderr: '' })));
+  assert.deepEqual(r, { exists: true, output: 'ready' });
+});
+
+test('创建命令不包含旧任务名', () => {
+  assert.doesNotMatch(buildCreateArgs('18:00', LAUNCHER).join(' '), /AGEAnimeUpdater/);
+  assert.doesNotMatch(buildDeleteArgs().join(' '), /AGEAnimeUpdater/);
+});
+
+test('自动任务失败不改变当前任务名', () => {
+  const r = syncSchedule({ time: '18:00', launcherPath: LAUNCHER, schtasks: fakeSchtasks(() => ({ status: 1, stdout: '', stderr: 'fail' })) });
+  assert.match(r.command, /AniVaultAutoRun/);
+  assert.doesNotMatch(r.command, /AGEAnimeUpdater/);
 });
 
 let passed = 0;

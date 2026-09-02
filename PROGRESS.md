@@ -1098,3 +1098,12 @@ D:\project_codex\260814_animeinstall_auto\tools\aria2\aria2c.exe: unknown option
 2026-09-02 22:01:07 淡岛百景: 已停用，跳过
 2026-09-02 22:01:07 章鱼哔的原罪: 已停用，跳过
 2026-09-02 22:01:07 待下载清单已写: D:\project_codex\260814_animeinstall_auto\local\待下载清单.csv（0 行）
+2026-09-02 22:47 开工回执：目标是退役 AGEAnimeUpdater 旧任务链，运行模式只由入口决定，保持 AniVaultAutoRun、面板和下载行为。
+顺序：任务0复核 → 先写运行模式红测 → 最小实现 → 删除旧链/迁移 IPC → 同步版本说明 → 全量验收并单提交。
+最大风险：误伤现役 AniVaultAutoRun 调度、面板 interactive 或 password 入口；优先用测试和现场状态保护。
+2026-09-02 22:49 运行模式红测：`node --test tests/run-mode.test.js` 失败，默认模式实际只走 aria2/ffmpeg，证实读取 task_state 的 password。
+2026-09-02 22:50 运行模式绿测：移除 task_state 回退后 `tests/run-mode.test.js` 与 `tests/schedule.test.js` 共 2/2 通过；显式 interactive/password 和现役调度失败诊断均保留。
+2026-09-02 22:52 旧链清理：删除 anime_updater.js 状态/安装/同步与 --install-task，删除 task_state.json；schedule/main/preload 删除旧任务检测、迁移及字段；历史版本与运行记录保留。
+2026-09-02 22:52 当前说明与版本同步至 0.12.1；面板 interactive、VBS/CMD password 未改动。
+2026-09-02 22:56 验证：生产关键词反查无输出；全量 `pnpm test` 为 Node 42/42、UI 18/18、skipped=0；`pnpm run smoke` 输出 SMOKE_OK；AniVaultAutoRun 仍 Ready，旧任务无输出；`git diff --check` 无空白错误。
+2026-09-02 23:06 审查遗漏修复：删除使用说明当前段落的 task_state.json 提示，确认 normalizeTime 无调用后删除函数及导出；全量 pnpm test 重跑为 42/42、UI 18/18、skipped=0。

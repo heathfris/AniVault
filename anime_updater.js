@@ -83,7 +83,6 @@ const CONTENT = process.env.AGE_CONTENT || path.join(WORK, 'content.json');
 const CSV = getCsvPath();
 const PROGRESS = process.env.AGE_PROGRESS || path.join(WORK, 'PROGRESS.md');
 const BLOCKED = process.env.AGE_BLOCKED || path.join(WORK, 'BLOCKED.md');
-const TASK_STATE = process.env.AGE_TASK_STATE || path.join(WORK, 'task_state.json');
 const FOLDER_RENAME_LOCK = process.env.AGE_FOLDER_RENAME_LOCK || path.join(WORK, 'local', 'mpv-watched-prefix', 'folder-rename.lock');
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
 const MIN_SIZE = 100 * 1024 * 1024;
@@ -162,7 +161,7 @@ async function downloadEpisode(anime, ep, folderDir, deps = {}) {
     isDurationPlausible, chooseRecoverablePart, getFfmpegTempPath, getPlayUrl, callAria2,
     callFfmpeg, callIdm, waitForFile, progress, getBase, userAgent: UA, lines: LINES,
     minSize: MIN_SIZE, stableMs: STABLE_MS, attemptTimeoutMs: deps.attemptTimeoutMs || ATTEMPT_TIMEOUT_MS,
-    runMode: deps.runMode || process.env.AGE_RUN_MODE || (readTaskState() || {}).run_mode || 'interactive',
+    runMode: deps.runMode || process.env.AGE_RUN_MODE || 'interactive',
     ...deps,
   });
 }
@@ -273,74 +272,6 @@ function writeCsv(rows, csvPath = CSV) {
   fs.writeFileSync(csvPath, '\uFEFF' + lines.join('\r\n'), 'utf8');
 }
 
-function installTask() {
-  let content;
-  try {
-    content = JSON.parse(fs.readFileSync(CONTENT, 'utf8'));
-  } catch (e) {
-    throw new Error('content.json 无法解析: ' + e.message);
-  }
-  const time = normalizeTime(content.fetch_time) || '18:00';
-  const node = process.execPath;
-  const script = path.join(WORK, 'anime_updater.js');
-  const tr = `"${node}" "${script}"`;
-  const args = ['/create', '/tn', 'AGEAnimeUpdater', '/tr', tr, '/sc', 'daily', '/st', time, '/f'];
-  const user = process.env.AGE_TASK_USER;
-  const pass = process.env.AGE_TASK_PASS;
-  const state = readTaskState() || {};
-  if (state.run_mode === 'password' && !(user && pass)) {
-    blocked('计划任务处于密码模式，重装需要 AGE_TASK_USER/AGE_TASK_PASS，否则会降级为仅登录运行');
-    return 1;
-  }
-  if (user && pass) args.push('/ru', user, '/rp', pass);
-  const r = spawnSync('schtasks.exe', args, { encoding: 'utf8', windowsHide: true });
-  if (r.status === 0) fs.writeFileSync(TASK_STATE, JSON.stringify({ fetch_time: time, run_mode: (user && pass) ? 'password' : 'interactive' }, null, 2) + '\n', 'utf8');
-  progress(`计划任务安装: ${(r.stdout || r.stderr || '').trim()} (exit=${r.status})`);
-  return r.status;
-}
-
-function normalizeTime(t) {
-  if (!t) return null;
-  const m = String(t).match(/(\d{1,2}:\d{2})(?::\d{2})?/);
-  return m ? m[1] : null;
-}
-
-function readTaskState() {
-  try {
-    return JSON.parse(fs.readFileSync(TASK_STATE, 'utf8'));
-  } catch (e) {
-    return null;
-  }
-}
-
-function syncTask(content) {
-  const desired = normalizeTime((content && content.fetch_time) || '18:00') || '18:00';
-  const q = spawnSync('schtasks.exe', ['/query', '/tn', 'AGEAnimeUpdater'], { encoding: 'utf8', windowsHide: true });
-  const taskExists = q.status === 0;
-  const state = readTaskState() || {};
-  const runMode = state.run_mode || 'interactive';
-  if (taskExists && state.fetch_time === desired) {
-    progress(`计划任务时间无需变更（${desired}）`);
-    return true;
-  }
-  const user = process.env.AGE_TASK_USER;
-  const pass = process.env.AGE_TASK_PASS;
-  if (runMode === 'password' && !(user && pass)) {
-    blocked('计划任务为密码模式，自动改时间需提供 AGE_TASK_USER/AGE_TASK_PASS，或手动运行 --install-task');
-    return false;
-  }
-  const node = process.execPath;
-  const script = path.join(WORK, 'anime_updater.js');
-  const tr = `"${node}" "${script}"`;
-  const args = ['/create', '/tn', 'AGEAnimeUpdater', '/tr', tr, '/sc', 'daily', '/st', desired, '/f'];
-  if (user && pass) args.push('/ru', user, '/rp', pass);
-  const r = spawnSync('schtasks.exe', args, { encoding: 'utf8', windowsHide: true });
-  const ok = r.status === 0;
-  if (ok) fs.writeFileSync(TASK_STATE, JSON.stringify({ fetch_time: desired, run_mode: (user && pass) ? 'password' : 'interactive' }, null, 2) + '\n', 'utf8');
-  progress(`计划任务时间同步: ${taskExists ? '重建为 ' + desired : '新建为 ' + desired} (exit=${r.status})`);
-  return ok;
-}
-
 async function processOneAnime(title, info, content, options = {}) {
   const deps = options.deps || {};
   const dryRun = options.dryRun === true;
@@ -355,7 +286,7 @@ async function processOneAnime(title, info, content, options = {}) {
   const maxParallelRaw = parseInt(defaults.max_parallel, 10);
   const maxParallel = Number.isFinite(maxParallelRaw) && maxParallelRaw >= 1 && maxParallelRaw <= 10 ? maxParallelRaw : 1;
   const engine = (defaults.download_engine === 'idm' || defaults.download_engine === 'ffmpeg') ? defaults.download_engine : 'aria2';
-  const runMode = deps.runMode || process.env.AGE_RUN_MODE || (readTaskState() || {}).run_mode || 'interactive';
+  const runMode = deps.runMode || process.env.AGE_RUN_MODE || 'interactive';
   const attemptTimeoutMinRaw = parseInt(defaults.attempt_timeout_min, 10);
   const attemptTimeoutMin = Number.isFinite(attemptTimeoutMinRaw) && attemptTimeoutMinRaw >= 5 && attemptTimeoutMinRaw <= 60 ? attemptTimeoutMinRaw : 20;
   const attemptTimeoutMs = attemptTimeoutMin * 60 * 1000;
@@ -549,16 +480,6 @@ async function processAllAnime(content, deps = {}) {
 
 async function main() {
   const dryRun = process.argv.includes('--dry-run');
-  if (process.argv.includes('--install-task')) {
-    try {
-      const st = installTask();
-      process.exitCode = st === 0 ? 0 : 1;
-    } catch (e) {
-      console.error('FATAL', e);
-      process.exitCode = 1;
-    }
-    return;
-  }
   if (!fs.existsSync(PROGRESS)) fs.writeFileSync(PROGRESS, '# PROGRESS\n\n无\n', 'utf8');
   if (!fs.existsSync(BLOCKED)) fs.writeFileSync(BLOCKED, '# BLOCKED\n\n无\n', 'utf8');
   progress(`启动 ${dryRun ? '(dry-run)' : '(实跑)'}`);
@@ -575,7 +496,7 @@ async function main() {
   await processAllAnime(content, { dryRun });
 }
 
-module.exports = { searchSite, parseHomeUpdateTimes, parseFolderName, applyTemplate, matchFolderTemplate, validName, resolveFolderName, resolveFileName, renameFolder, safeRenameFolder, renameWithRetrySync, getMediaDurationSeconds, isDurationPlausible, chooseRecoverablePart, getEpisodeFileMatcher, countEpisodeFiles, findEpisodeFile, planDownloadRange, findMissingEps, resolveDownloadedStart, computeNewEnd, filterRowsByResults, withoutSkippedEps, getBase, resetBaseCache, getDownloadDir, engineChain, getCsvPath, getFfmpegPath, getAria2Path, getFfmpegTempPath, formatLogTime, isIdmRunning, ensureIdmMinimized, idmHasActivity, closeIdmIfIdle, blocked, progress, getMaxEp, getPlayUrl, callIdm, callFfmpeg, callAria2, fetchText, runPool, processOneAnime, processAllAnime, waitForFile, downloadEpisode, findFolder, findFolderByTitle, normalizeTime, syncTask, readTaskState, writeCsv };
+module.exports = { searchSite, parseHomeUpdateTimes, parseFolderName, applyTemplate, matchFolderTemplate, validName, resolveFolderName, resolveFileName, renameFolder, safeRenameFolder, renameWithRetrySync, getMediaDurationSeconds, isDurationPlausible, chooseRecoverablePart, getEpisodeFileMatcher, countEpisodeFiles, findEpisodeFile, planDownloadRange, findMissingEps, resolveDownloadedStart, computeNewEnd, filterRowsByResults, withoutSkippedEps, getBase, resetBaseCache, getDownloadDir, engineChain, getCsvPath, getFfmpegPath, getAria2Path, getFfmpegTempPath, formatLogTime, isIdmRunning, ensureIdmMinimized, idmHasActivity, closeIdmIfIdle, blocked, progress, getMaxEp, getPlayUrl, callIdm, callFfmpeg, callAria2, fetchText, runPool, processOneAnime, processAllAnime, waitForFile, downloadEpisode, findFolder, findFolderByTitle, writeCsv };
 
 if (require.main === module) {
   main().catch(e => {
