@@ -99,6 +99,10 @@ function pushRunLog(line) {
   if (runLog.length > RUN_LOG_CAP) runLog.splice(0, runLog.length - RUN_LOG_CAP);
 }
 
+function sendRunEvent(channel, payload) {
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(channel, payload);
+}
+
 function handleRunnerLine(line) {
   if (typeof line !== 'string' || !line.startsWith('EP_STATUS\t')) return;
   let data;
@@ -111,9 +115,7 @@ function handleRunnerLine(line) {
   const entry = { title: data.title, ep: data.ep, status: data.status, skipped: data.skipped === true };
   episodes = episodes.filter(e => !(e.title === entry.title && e.ep === entry.ep));
   episodes.push(entry);
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('run:episode', entry);
-  }
+  sendRunEvent('run:episode', entry);
 }
 
 function getRunner() {
@@ -124,10 +126,17 @@ function getRunner() {
       extraEnv: { AGE_RUN_MODE: 'interactive' },
       onStdout: line => {
         pushRunLog(line);
+        sendRunEvent('run:log', { stream: 'stdout', line });
         handleRunnerLine(line);
       },
-      onStderr: line => pushRunLog(line),
-      onExit: result => { lastExit = result; },
+      onStderr: line => {
+        pushRunLog(line);
+        sendRunEvent('run:log', { stream: 'stderr', line });
+      },
+      onExit: result => {
+        lastExit = result;
+        sendRunEvent('run:finished', result);
+      },
     });
   }
   return runner;
@@ -313,7 +322,10 @@ function registerIpc() {
     const r = getRunner().start(args);
     if (r.ok) {
       episodes = [];
-      pushRunLog('[面板] 已启动 ' + (mode === 'dry' ? 'dry-run' : '下载') + '，pid=' + r.pid);
+      const label = '[面板] 已启动 ' + (mode === 'dry' ? 'dry-run' : '下载') + '，pid=' + r.pid;
+      pushRunLog(label);
+      sendRunEvent('run:started', { mode: mode === 'dry' ? 'dry' : 'full', pid: r.pid });
+      sendRunEvent('run:log', { stream: 'panel', line: label });
     }
     return r;
   });

@@ -305,7 +305,7 @@ function renderLog() {
   if (pinned) area.scrollTop = area.scrollHeight;
 }
 
-async function poll() {
+async function syncSnapshot() {
   try {
     const [st, log] = await Promise.all([
       window.anivault.runStatus(),
@@ -322,6 +322,36 @@ async function poll() {
     if (wasRunning && !st.running) refreshCsv();
   } catch (e) {
     /* 轮询失败忽略 */
+  }
+}
+
+function applyRunEvent(channel, payload) {
+  if (channel === 'run:started') {
+    state.running = true;
+    state.pid = payload?.pid || null;
+    state.lastExit = null;
+    state.episodes = [];
+    renderRun();
+    renderEpisodes();
+  } else if (channel === 'run:episode') {
+    state.episodes = state.episodes.filter(e => !(e.title === payload.title && e.ep === payload.ep));
+    state.episodes.push(payload);
+    renderEpisodes();
+  } else if (channel === 'run:log') {
+    if (payload?.line) state.logProgress = state.logProgress.concat(payload.line).slice(-500);
+    renderLog();
+  } else if (channel === 'run:finished') {
+    state.running = false;
+    state.pid = null;
+    state.lastExit = payload || null;
+    renderRun();
+    refreshCsv();
+  }
+}
+
+function subscribeRunEvents() {
+  for (const channel of ['run:started', 'run:episode', 'run:log', 'run:finished']) {
+    window.anivault.runEventsOn(channel, payload => applyRunEvent(channel, payload));
   }
 }
 
@@ -411,7 +441,7 @@ async function startRun(mode) {
       $('run-status').textContent = r.error || '启动失败';
     }
   }
-  poll();
+  syncSnapshot();
 }
 
 $('add-anime').addEventListener('click', () => {
@@ -423,7 +453,7 @@ $('run-dry').addEventListener('click', () => startRun('dry'));
 $('run-full').addEventListener('click', () => startRun('full'));
 $('stop-run').addEventListener('click', async () => {
   await window.anivault.runStop();
-  poll();
+  syncSnapshot();
 });
 $('open-download').addEventListener('click', () => window.anivault.openDownloadDir());
 $('csv-refresh').addEventListener('click', refreshCsv);
@@ -437,5 +467,6 @@ $('log-area').addEventListener('scroll', () => {
   state.logPinned = area.scrollTop + area.clientHeight >= area.scrollHeight - 4;
 });
 
-setInterval(poll, 1000);
+subscribeRunEvents();
+setInterval(syncSnapshot, 7000);
 load();
