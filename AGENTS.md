@@ -2,7 +2,7 @@
 
 ## 定位
 
-这是 AGE 动漫自动追更脚本的软件化桌面项目，当前版本为 `0.10.2`。核心入口是 `anime_updater.js`，桌面入口是 `electron/main.js`。
+这是 AGE 动漫自动追更脚本的软件化桌面项目，当前版本为 `0.11.1`。核心入口是 `anime_updater.js`，桌面入口是 `electron/main.js`。
 
 ## 常用命令
 

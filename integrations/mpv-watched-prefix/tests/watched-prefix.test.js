@@ -26,8 +26,8 @@ function event(seq, episode, eligible, position, duration = 100) {
   };
 }
 
-test('双90%四象限只有时长和位置都达标才产生结果', () => {
-  for (const [eligible, position, qualified] of [[89, 89, false], [90, 89, false], [89, 90, false], [90, 90, true]]) {
+test('45%有效时长和90%播放位置都达标才产生结果', () => {
+  for (const [eligible, position, qualified] of [[44, 89, false], [45, 89, false], [44, 90, false], [45, 90, true]]) {
     const result = mergeEvents({}, 'session-a.jsonl', [event(1, 8, eligible, position)]);
     assert.equal(result.qualified.length === 1, qualified, `${eligible}/${position}`);
   }

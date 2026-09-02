@@ -54,10 +54,11 @@ function mergeEvents(inputState, sessionName, events) {
     };
     file.eligible_seconds += event.eligible_delta;
     file.max_time_pos = Math.max(file.max_time_pos, event.time_pos);
-    const threshold = event.duration * 0.9;
-    if (file.eligible_seconds >= threshold && file.max_time_pos >= threshold) {
+    const eligibleThreshold = event.duration * 0.45;
+    const positionThreshold = event.duration * 0.9;
+    if (file.eligible_seconds >= eligibleThreshold && file.max_time_pos >= positionThreshold) {
       qualified.push({ anime_key: event.anime_key, episode: event.episode, seq: event.seq });
-      file.eligible_seconds -= threshold;
+      file.eligible_seconds -= eligibleThreshold;
       file.max_time_pos = 0;
     }
     state.files[key] = file;
