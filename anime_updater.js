@@ -146,220 +146,28 @@ async function getPlayUrl(siteId, ep, source, browserPool) {
   return siteOps.getPlayUrl(siteId, ep, source, browserPool, { baseUrl: getBase(), chromium, edgePath: EDGE });
 }
 
-function callIdm(url, folder, filename) {
-  const child = spawn(IDM, ['/n', '/d', url, '/p', folder, '/f', filename], { detached: true, stdio: 'ignore', windowsHide: true });
-  child.unref();
-  return { status: 0 };
-}
+function callIdm(url, folder, filename) { return downloadOps.callIdm(url, folder, filename, { idmPath: IDM, spawn }); }
 
-function getFfmpegTempPath(output) {
-  return /\.mp4$/i.test(output) ? output.replace(/\.mp4$/i, '.part.mp4') : output + '.part';
-}
-
-function getMediaDurationSeconds(file, run = spawnSync) {
-  const result = run(FFMPEG, ['-hide_banner', '-i', file], {
-    encoding: 'utf8', windowsHide: true, timeout: 30 * 1000, maxBuffer: 1024 * 1024,
-  });
-  const match = String(result.stderr || '').match(/Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/i);
-  if (!match) return 0;
-  return Number(match[1]) * 3600 + Number(match[2]) * 60 + Number(match[3]);
-}
-
-function isDurationPlausible(duration, referenceDuration) {
-  return duration > 0 && (!referenceDuration || duration >= referenceDuration * 0.8);
-}
-
-function chooseRecoverablePart(candidates, referenceDuration, minSize = MIN_SIZE) {
-  const valid = candidates.filter(item => item.size >= minSize && isDurationPlausible(item.duration, referenceDuration));
-  valid.sort((a, b) => b.duration - a.duration);
-  return valid[0] || null;
-}
-
-function callFfmpeg(url, folder, filename, headers = {}) {
-  const headerText = Object.entries(headers).map(([key, value]) => `${key}: ${value}`).join('\r\n');
-  const output = path.join(folder, filename);
-  const tempOutput = getFfmpegTempPath(output);
-  try { fs.rmSync(tempOutput, { force: true }); } catch (e) { /* 临时文件不存在 */ }
-  const args = ['-hide_banner', '-loglevel', 'error', '-y'];
-  if (headerText) args.push('-headers', `${headerText}\r\n`);
-  args.push('-i', url, '-c', 'copy', tempOutput);
-  const result = spawnSync(FFMPEG, args, {
-    encoding: 'utf8',
-    windowsHide: true,
-    timeout: ATTEMPT_TIMEOUT_MS,
-    maxBuffer: 1024 * 1024,
-  });
-  const stderr = (result.stderr || result.error?.message || '').trim();
-  if (result.status !== 0) return { status: result.status, stderr };
-  try {
-    renameWithRetrySync(tempOutput, output);
-    return { status: 0, stderr };
-  } catch (e) {
-    return { status: 1, stderr: `完成文件改名失败: ${e.message}` };
-  }
-}
-
-function callAria2(url, folder, filename, headers = {}) {
-  const headerText = Object.entries(headers).map(([key, value]) => `${key}: ${value}`).join('\r\n');
-  const output = path.join(folder, filename);
-  const tempOutput = getFfmpegTempPath(output);
-  try { fs.rmSync(tempOutput, { force: true }); } catch (e) { /* 临时文件不存在 */ }
-  const args = ['-x', '16', '-s', '16', '-k', '1M', '-c', '--no-conf', '--auto-file-renaming=false'];
-  if (headerText) {
-    for (const line of headerText.split('\r\n')) args.push('--header', line);
-  }
-  args.push('--dir', folder, '--out', path.basename(tempOutput), url);
-  const result = spawnSync(ARIA2, args, {
-    encoding: 'utf8',
-    windowsHide: true,
-    timeout: ATTEMPT_TIMEOUT_MS,
-    maxBuffer: 1024 * 1024,
-  });
-  const stderr = (result.stderr || result.error?.message || '').trim();
-  if (result.status !== 0) return { status: result.status, stderr };
-  try {
-    renameWithRetrySync(tempOutput, output);
-    return { status: 0, stderr };
-  } catch (e) {
-    return { status: 1, stderr: `完成文件改名失败: ${e.message}` };
-  }
-}
-
-async function waitForFile(filePath, minSize, stableMs, timeoutMs) {
-  const start = Date.now();
-  let lastSize = -1, stableSince = Date.now();
-  while (Date.now() - start < timeoutMs) {
-    let size = 0;
-    try { size = fs.statSync(filePath).size; } catch (e) { size = 0; }
-    if (size >= minSize) {
-      if (lastSize >= 0 && size === lastSize) {
-        if (Date.now() - stableSince >= stableMs) return { ok: true, size };
-      } else {
-        stableSince = Date.now();
-      }
-    } else {
-      stableSince = Date.now();
-    }
-    lastSize = size;
-    await sleep(10000);
-  }
-  return { ok: false, size: lastSize };
-}
-
-function engineChain(selected, isM3u8, runMode) {
-  return downloadOps.engineChain(selected, isM3u8, runMode);
-}
-
+function getFfmpegTempPath(output) { return downloadOps.getFfmpegTempPath(output); }
+function getMediaDurationSeconds(file, run = spawnSync) { return downloadOps.getMediaDurationSeconds(file, run, FFMPEG); }
+function isDurationPlausible(duration, referenceDuration) { return downloadOps.isDurationPlausible(duration, referenceDuration); }
+function chooseRecoverablePart(candidates, referenceDuration, minSize = MIN_SIZE) { return downloadOps.chooseRecoverablePart(candidates, referenceDuration, minSize); }
+function callFfmpeg(url, folder, filename, headers = {}) { return downloadOps.callFfmpeg(url, folder, filename, headers, { ffmpegPath: FFMPEG, timeoutMs: ATTEMPT_TIMEOUT_MS, renameWithRetrySync }); }
+function callAria2(url, folder, filename, headers = {}) { return downloadOps.callAria2(url, folder, filename, headers, { aria2Path: ARIA2, timeoutMs: ATTEMPT_TIMEOUT_MS, renameWithRetrySync }); }
+function waitForFile(filePath, minSize, stableMs, timeoutMs) { return downloadOps.waitForFile(filePath, minSize, stableMs, timeoutMs); }
+function engineChain(selected, isM3u8, runMode) { return downloadOps.engineChain(selected, isM3u8, runMode); }
 async function downloadEpisode(anime, ep, folderDir, deps = {}) {
-  const resolvePlayUrl = deps.getPlayUrl || getPlayUrl;
-  const startAria2 = deps.callAria2 || callAria2;
-  const startFfmpeg = deps.callFfmpeg || callFfmpeg;
-  const startIdm = deps.callIdm || callIdm;
-  const waitForDownload = deps.waitForFile || waitForFile;
-  const engine = deps.engine || 'aria2';
-  const runMode = deps.runMode || process.env.AGE_RUN_MODE || (readTaskState() || {}).run_mode || 'interactive';
-  const attemptTimeoutMs = deps.attemptTimeoutMs || ATTEMPT_TIMEOUT_MS;
-  const fname = resolveFileName(anime, ep);
-  if (fname.error) throw new Error(fname.error);
-  const filename = fname.name;
-  const finalPath = path.join(folderDir, filename);
-  const durationOf = deps.getMediaDurationSeconds || getMediaDurationSeconds;
-  const renameCompleted = deps.renameWithRetrySync || renameWithRetrySync;
-  const previous = ep > 1 ? findEpisodeFile(folderDir, anime, ep - 1) : null;
-  const referenceDuration = previous ? durationOf(previous) : 0;
-  const existing = findEpisodeFile(folderDir, anime, ep);
-  if (existing) {
-    try {
-      if (fs.statSync(existing).size >= MIN_SIZE
-        && (!referenceDuration || isDurationPlausible(durationOf(existing), referenceDuration))) {
-        return { src: 0, skipped: true };
-      }
-    } catch (e) { /* 文件消失则继续下载 */ }
-  }
-  if (!existing) {
-    const candidates = [];
-    for (const src of LINES) {
-      const attemptName = src === 1 ? filename : filename.replace(/\.mp4$/, `_L${src}.mp4`);
-      const partPath = getFfmpegTempPath(path.join(folderDir, attemptName));
-      try {
-        const stat = fs.statSync(partPath);
-        candidates.push({ path: partPath, size: stat.size, duration: durationOf(partPath) });
-      } catch (e) { /* 无临时文件 */ }
-    }
-    const recovered = chooseRecoverablePart(candidates, referenceDuration);
-    if (recovered) {
-      renameCompleted(recovered.path, finalPath);
-      progress(`  ${filename}: 复用完整临时文件，避免重复下载`);
-      return { src: 0, skipped: true, recovered: true, size: recovered.size };
-    }
-  }
-  let lastErr = null;
-  for (const src of LINES) {
-    const isPrimary = src === 1;
-    const attemptName = isPrimary ? filename : filename.replace(/\.mp4$/, `_L${src}.mp4`);
-    const attemptPath = path.join(folderDir, attemptName);
-    try {
-      const st = fs.statSync(attemptPath);
-      if (st.size < MIN_SIZE) fs.renameSync(attemptPath, attemptPath + '.failed');
-    } catch (e) { /* 无残留 */ }
-    let url = null;
-    try {
-      url = await resolvePlayUrl(anime.site_id, ep, src, deps.browserPool);
-      if (!url && src === 1) {
-        progress(`  线路1 取址失败，5秒后重试一次`);
-        await sleep(5000);
-        url = await resolvePlayUrl(anime.site_id, ep, src, deps.browserPool);
-      }
-    } catch (e) {
-      lastErr = e;
-    }
-    if (!url) {
-      lastErr = new Error(`线路${src}取址失败`);
-      progress(`  ${filename} 线路${src}: 取址失败`);
-      continue;
-    }
-    const isM3u8 = /\.m3u8(?:[?#]|$)/i.test(url);
-    const headers = {
-      Referer: `${getBase()}/play/${anime.site_id}/${src}/${ep}`,
-      'User-Agent': UA,
-    };
-    let engineOk = false;
-    let res = null;
-    let okEngineName = null;
-    for (const engineName of engineChain(engine, isM3u8, runMode)) {
-      const launch = engineName === 'aria2' ? startAria2 : engineName === 'ffmpeg' ? startFfmpeg : startIdm;
-      progress(`  ${filename} 线路${src}: 交给 ${engineName} ${isM3u8 ? '(M3U8)' : '(MP4)'} ${url.slice(0, 100)}...`);
-      const engineResult = launch(url, folderDir, attemptName, headers, isM3u8);
-      if (engineResult && engineResult.status !== undefined && engineResult.status !== 0) {
-        const detail = engineResult.stderr ? `: ${engineResult.stderr.slice(0, 300)}` : '';
-        lastErr = new Error(`线路${src} ${engineName} 失败 exit=${engineResult.status}${detail}`);
-        progress(`  ${filename} 线路${src}: ${engineName} 失败 exit=${engineResult.status}${detail}`);
-        try { fs.renameSync(attemptPath, attemptPath + '.failed'); } catch (e) { /* 没有文件则忽略 */ }
-        continue;
-      }
-      res = await waitForDownload(attemptPath, MIN_SIZE, STABLE_MS, attemptTimeoutMs);
-      const durationOk = res.ok && (!referenceDuration || isDurationPlausible(durationOf(attemptPath), referenceDuration));
-      if (durationOk) {
-        engineOk = true;
-        okEngineName = engineName;
-        break;
-      }
-      const detail = res.ok ? `时长明显不足` : `size=${res.size}`;
-      lastErr = new Error(`线路${src} ${engineName} 文件未完成 ${detail}`);
-      progress(`  ${filename} 线路${src}: ${engineName} 未完成 ${detail}`);
-      try { fs.renameSync(attemptPath, attemptPath + '.failed'); } catch (e) { /* 没有文件就不动 */ }
-    }
-    if (engineOk) {
-      if (!isPrimary) renameCompleted(attemptPath, finalPath);
-      return { src, skipped: false, size: res.size, engine: okEngineName };
-    }
-  }
-  throw lastErr || new Error('全部线路失败');
+  return downloadOps.downloadEpisode(anime, ep, folderDir, {
+    resolveFileName, findEpisodeFile, renameWithRetrySync, getMediaDurationSeconds,
+    isDurationPlausible, chooseRecoverablePart, getFfmpegTempPath, getPlayUrl, callAria2,
+    callFfmpeg, callIdm, waitForFile, progress, getBase, userAgent: UA, lines: LINES,
+    minSize: MIN_SIZE, stableMs: STABLE_MS, attemptTimeoutMs: deps.attemptTimeoutMs || ATTEMPT_TIMEOUT_MS,
+    runMode: deps.runMode || process.env.AGE_RUN_MODE || (readTaskState() || {}).run_mode || 'interactive',
+    ...deps,
+  });
 }
+async function runPool(items, worker, poolSize) { return downloadOps.runPool(items, worker, poolSize); }
 
-async function runPool(items, worker, poolSize) {
-  return downloadOps.runPool(items, worker, poolSize);
-}
 
 function planDownloadRange(maxEp, end, maxPerRun) {
   const target = (maxPerRun > 0) ? Math.min(maxEp, end + maxPerRun) : maxEp;
