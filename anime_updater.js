@@ -11,11 +11,11 @@ try {
 }
 const { appendRotated } = require('./src/logutil.js');
 const folderOps = require('./src/folders.js');
+const siteOps = require('./src/site.js');
 
 const WORK = __dirname;
 const EDGE = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
 const IDM = 'F:\\IDM\\Internet Download Manager\\IDMan.exe';
-const FETCH_TIMEOUT_MS = 30 * 1000;
 function getCsvPath(workDir = WORK, env = process.env) {
   return env.AGE_CSV || path.join(workDir, 'local', '待下载清单.csv');
 }
@@ -89,72 +89,12 @@ const MIN_SIZE = 100 * 1024 * 1024;
 const STABLE_MS = 120 * 1000;
 const ATTEMPT_TIMEOUT_MS = 45 * 60 * 1000;
 const LINES = [1, 2, 3, 4, 5];
-const MEDIA_RE = /(\.m3u8(\?|$)|\.mp4(\?|$)|video\/tos\/|douyinvod|ixigua\.com|bytecdn|mgtv\.com|bilivideo|ffzy-plays|\.ts\?)/i;
-const BAD_RE = /\.(gif|png|jpe?g|css|js|svg|ico)(\?|$)/i;
-const UPDATE_TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-function createBrowserPool(createBrowser) {
-  let promise = null;
-  return {
-    getBrowser() {
-      if (!promise) {
-        promise = Promise.resolve().then(() => (
-          createBrowser
-            ? createBrowser()
-            : chromium.launch({ executablePath: EDGE, headless: true, args: ['--no-sandbox', '--disable-gpu'] })
-        ));
-      }
-      return promise;
-    },
-    async close() {
-      const pending = promise;
-      promise = null;
-      if (!pending) return;
-      const browser = await pending.catch(() => null);
-      if (browser && typeof browser.close === 'function') {
-        await browser.close().catch(() => {});
-      }
-    },
-  };
-}
+function createBrowserPool(createBrowser) { return siteOps.createBrowserPool(createBrowser, { chromium, edgePath: EDGE }); }
 
-async function fetchText(url, referer, deps = {}) {
-  const headers = { 'Connection': 'close', 'User-Agent': UA, 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8' };
-  if (referer) headers.Referer = referer;
-  const fetchImpl = deps.fetchImpl || fetch;
-  const timeoutMs = deps.timeoutMs || FETCH_TIMEOUT_MS;
-  const retries = deps.retries !== undefined ? deps.retries : 1;
-  const retryDelayMs = deps.retryDelayMs || 3000;
-  let lastError = null;
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    if (attempt > 0) await sleep(retryDelayMs);
-    const controller = new AbortController();
-    let timeoutReject;
-    const timeoutPromise = new Promise((_, reject) => { timeoutReject = reject; });
-    const timer = setTimeout(() => {
-      controller.abort();
-      timeoutReject(new Error(`请求超时（${timeoutMs}ms）: ${url}`));
-    }, timeoutMs);
-    try {
-      const r = await Promise.race([
-        fetchImpl(url, { headers, signal: controller.signal }),
-        timeoutPromise,
-      ]);
-      if (!r.ok) throw new Error(`HTTP ${r.status} ${url}`);
-      return r.text();
-    } catch (e) {
-      if (e.name === 'AbortError' || /超时/.test(e.message || '')) {
-        throw new Error(`请求超时（${timeoutMs}ms）: ${url}`);
-      }
-      lastError = e;
-    } finally {
-      clearTimeout(timer);
-    }
-  }
-  throw lastError;
-}
+async function fetchText(url, referer, deps = {}) { return siteOps.fetchText(url, referer, deps); }
 
 function formatLogTime(date) {
   const parts = new Intl.DateTimeFormat('en-CA', {
@@ -186,87 +126,23 @@ function blocked(msg) {
 }
 
 async function searchSite(title) {
-  const html = await fetchText(`${getBase()}/search?query=${encodeURIComponent(title)}`);
-  const re = /<a href="http:\/\/www\.agedm\.io\/detail\/(\d+)"[^>]*>([^<]+)<\/a>/g;
-  let m, first = null;
-  while ((m = re.exec(html))) {
-    const t = m[2].trim();
-    if (!first) first = { id: parseInt(m[1], 10), title: t };
-    if (t === title) return { id: parseInt(m[1], 10), title: t };
-  }
-  return first;
+  return siteOps.searchSite(title, { baseUrl: getBase(), fetchTextImpl: fetchText });
 }
 
 function parseHomeUpdateTimes(html) {
-  const map = {};
-  const blocks = html.match(/<li[^>]*>[\s\S]*?<\/li>/g) || [];
-  for (const b of blocks) {
-    const a = b.match(/<a[^>]*>([^<]+)<\/a>/);
-    const t = b.match(/class="title_sub[^"]*"[^>]*>\s*([\d:]+)/);
-    if (a && t && UPDATE_TIME_RE.test(t[1])) map[a[1].trim()] = t[1];
-  }
-  return map;
+  return siteOps.parseHomeUpdateTimes(html);
 }
 
 async function getHomeUpdateTimes() {
-  return parseHomeUpdateTimes(await fetchText(`${getBase()}/`));
+  return siteOps.getHomeUpdateTimes({ baseUrl: getBase(), fetchTextImpl: fetchText });
 }
 
 async function getMaxEp(siteId, source) {
-  const html = await fetchText(`${getBase()}/detail/${siteId}`);
-  const re = new RegExp(`/play/${siteId}/${source}/(\\d+)`, 'g');
-  let m, max = 0;
-  while ((m = re.exec(html))) max = Math.max(max, parseInt(m[1], 10));
-  return max;
+  return siteOps.getMaxEp(siteId, source, { baseUrl: getBase(), fetchTextImpl: fetchText });
 }
 
 async function getPlayUrl(siteId, ep, source, browserPool) {
-  let browser = null;
-  let ownBrowser = false;
-  if (browserPool) {
-    browser = await browserPool.getBrowser();
-  } else {
-    browser = await chromium.launch({ executablePath: EDGE, headless: true, args: ['--no-sandbox', '--disable-gpu'] });
-    ownBrowser = true;
-  }
-  let context = null;
-  try {
-    context = await browser.newContext({ userAgent: UA });
-    const page = await context.newPage();
-    let mediaUrl = null;
-    page.on('request', req => {
-      const u = req.url();
-      if (!mediaUrl && MEDIA_RE.test(u) && !BAD_RE.test(u)) mediaUrl = u;
-    });
-    const playUrl = `${getBase()}/play/${siteId}/${source}/${ep}`;
-    await page.goto(playUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
-    try { await page.waitForResponse(r => r.url().includes('Api.php'), { timeout: 30000 }); } catch (e) { /* 播放器可能不走 Api.php */ }
-    const deadline = Date.now() + 60000;
-    while (Date.now() < deadline) {
-      const jx = page.frames().find(f => f.url().includes('jx.wuzhoupai.com'));
-      if (jx) {
-        try {
-          const v = await jx.evaluate(() => {
-            const el = document.querySelector('video');
-            if (el && el.currentSrc) return el.currentSrc;
-            const ifr = document.querySelector('iframe#video');
-            return ifr ? ifr.src : null;
-          });
-          if (v && /^https?:/i.test(v) && MEDIA_RE.test(v) && !BAD_RE.test(v)) return v;
-          if (source === 2) {
-            const html = await jx.evaluate(() => document.documentElement.outerHTML);
-            const m = html.match(/var Vurl\s*=\s*'([^']+)'/);
-            if (m && /^https?:/i.test(m[1])) return m[1];
-          }
-        } catch (e) { /* frame 未就绪 */ }
-      }
-      await sleep(2000);
-    }
-    return (mediaUrl && MEDIA_RE.test(mediaUrl) && !BAD_RE.test(mediaUrl)) ? mediaUrl : null;
-  } finally {
-    if (context) await context.close().catch(() => {});
-    if (ownBrowser && browser) await browser.close().catch(() => {});
-  }
+  return siteOps.getPlayUrl(siteId, ep, source, browserPool, { baseUrl: getBase(), chromium, edgePath: EDGE });
 }
 
 function callIdm(url, folder, filename) {
