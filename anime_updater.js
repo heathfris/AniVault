@@ -12,6 +12,7 @@ try {
 const { appendRotated } = require('./src/logutil.js');
 const folderOps = require('./src/folders.js');
 const siteOps = require('./src/site.js');
+const downloadOps = require('./src/download.js');
 
 const WORK = __dirname;
 const EDGE = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
@@ -246,13 +247,7 @@ async function waitForFile(filePath, minSize, stableMs, timeoutMs) {
 }
 
 function engineChain(selected, isM3u8, runMode) {
-  if (isM3u8) return ['ffmpeg'];
-  let chain;
-  if (selected === 'idm') chain = ['idm', 'aria2', 'ffmpeg'];
-  else if (selected === 'ffmpeg') chain = ['ffmpeg', 'aria2', 'idm'];
-  else chain = ['aria2', 'ffmpeg'];
-  if (runMode !== 'interactive') chain = chain.filter(e => e !== 'idm');
-  return chain;
+  return downloadOps.engineChain(selected, isM3u8, runMode);
 }
 
 async function downloadEpisode(anime, ep, folderDir, deps = {}) {
@@ -363,20 +358,7 @@ async function downloadEpisode(anime, ep, folderDir, deps = {}) {
 }
 
 async function runPool(items, worker, poolSize) {
-  const size = Math.max(1, Math.min(parseInt(poolSize, 10) || 1, items.length || 1));
-  const results = new Array(items.length);
-  let next = 0;
-  async function runWorker() {
-    while (next < items.length) {
-      const index = next;
-      next += 1;
-      results[index] = await worker(items[index], index);
-    }
-  }
-  const workers = [];
-  for (let i = 0; i < size; i++) workers.push(runWorker());
-  await Promise.all(workers);
-  return results;
+  return downloadOps.runPool(items, worker, poolSize);
 }
 
 function planDownloadRange(maxEp, end, maxPerRun) {
