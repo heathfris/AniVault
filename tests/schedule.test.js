@@ -115,6 +115,15 @@ test('Electron 保存配置时同步 VBS 启动器', () => {
   assert.doesNotMatch(main, /launcherPath:.*auto-run\.cmd/);
 });
 
+test('Electron 暴露旧任务迁移入口但不自动删除旧任务', () => {
+  const main = fs.readFileSync(path.join(__dirname, '..', 'electron', 'main.js'), 'utf8');
+  const preload = fs.readFileSync(path.join(__dirname, '..', 'electron', 'preload.js'), 'utf8');
+  assert.match(main, /ipcMain\.handle\('schedule:migrate-legacy'/);
+  assert.match(main, /migrateLegacyTask\(/);
+  assert.match(preload, /ipcRenderer\.invoke\('schedule:migrate-legacy'/);
+  assert.doesNotMatch(main, /migrateLegacyTask\([\s\S]*buildDeleteArgs/);
+});
+
 test('旧任务不存在时返回未迁移且不创建新任务', () => {
   const calls = [];
   const st = fakeSchtasks((cmd, args) => {

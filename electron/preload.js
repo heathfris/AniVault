@@ -28,6 +28,7 @@ contextBridge.exposeInMainWorld('anivault', {
   runStop: () => ipcRenderer.invoke('run:stop'),
   runStatus: () => ipcRenderer.invoke('run:status'),
   logTail: (n) => ipcRenderer.invoke('log:tail', n),
+  scheduleMigrateLegacy: () => ipcRenderer.invoke('schedule:migrate-legacy'),
   runEventsOn,
   runEventsOff,
   csvRead: () => ipcRenderer.invoke('csv:read'),

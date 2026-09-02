@@ -9,7 +9,9 @@ const { validateConfig } = require('../src/config/validator.js');
 const { createRunner } = require('../src/runner.js');
 const { readCsv, removeCsvRow } = require('../src/csv.js');
 const { tailFileFast } = require('../src/logutil.js');
-const { syncSchedule, queryTask, detectLegacyTask, TASK_NAME } = require('../src/schedule.js');
+const {
+  syncSchedule, queryTask, detectLegacyTask, migrateLegacyTask, TASK_NAME,
+} = require('../src/schedule.js');
 const { countEpisodeFiles, findFolder } = require('../anime_updater.js');
 const { summarize } = require('../src/summary.js');
 const { createManager: createMpvSyncManager } = require('../src/mpv-watched-prefix-manager.js');
@@ -319,6 +321,14 @@ function registerIpc() {
       legacyExists: legacy.exists,
       legacyOutput: legacy.output,
     };
+  });
+  ipcMain.handle('schedule:migrate-legacy', () => {
+    const cfg = readConfig(configFile());
+    if (!cfg.ok) return { ok: false, action: 'config-failed', output: cfg.error };
+    return migrateLegacyTask({
+      time: cfg.data.fetch_time,
+      launcherPath: path.join(appRoot(), 'scripts', 'auto-run.vbs'),
+    });
   });
 
   ipcMain.handle('run:start', (_e, mode) => {
