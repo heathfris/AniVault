@@ -42,8 +42,8 @@
       "site_id": 20260066,
       "update_time": "22:30",
       "downloaded_start": 1,
-      "downloaded_end": 14,
-      "site_latest": 14,
+      "downloaded_end": 15,
+      "site_latest": 15,
       "folder_name": "{watched}_{name}{start}-{end}",
       "file_name": "{name}_{ep}.mp4"
     },
