@@ -2,3 +2,7 @@ local/
 tools/ffmpeg/ffmpeg.exe
 tools/aria2/
 node_modules/
+PROGRESS.md
+content.json
+BLOCKED.md
+docs/personal/
