@@ -1,11 +1,11 @@
 # PROGRESS
 
-## 番仓 AniVault 0.12.0 知识与发布收尾（2026-09-02）
+## 番仓 AniVault 0.12.1 知识与发布收尾（2026-09-03）
 
-- 以当前 `master` 代码为准同步结构说明：文件夹、AGE站点和下载链路已分别拆入 `src/folders.js`、`src/site.js`、`src/download.js`；`anime_updater.js` 保留追更编排和兼容入口。
-- 面板运行状态已按四类事件实时推送，并保留7秒快照校准；旧任务迁移入口只创建并验证 `AniVaultAutoRun`，不会自动删除 `AGEAnimeUpdater`、`task_state.json` 或兼容函数。
-- 版本统一更新为0.12.0；README、使用说明、Agent规则、界面徽标、框架全景指南和历史设计的现役指针已同步。`content.json`、PROGRESS/BLOCKED 与个人 context 文档按用户授权随本次提交保留。
-- `pnpm test` 退出0：Node test 41/41、UI检查18/18，其他脚本测试全部通过；`pnpm run smoke` 输出 `SMOKE_OK`，`pnpm run selftest` 输出 `SELFTEST_OK`。
+- 以当前 `master` 代码为准同步结构说明：文件夹、AGE站点和下载链路已分别拆入 `src/folders.js`、`src/site.js`、`src/download.js`；`anime_updater.js` 只保留追更主流程编排。
+- 面板运行状态按四类事件实时推送，并保留7秒快照校准；`AGEAnimeUpdater`、`task_state.json` 及其迁移和兼容入口已退役，当前调度只管理 `AniVaultAutoRun`。
+- 运行模式由入口明确指定：手工运行默认 interactive，面板传 interactive，计划任务 VBS/CMD 传 password；版本统一为0.12.1，README、使用说明、Agent规则、界面徽标和框架全景指南已同步。
+- `pnpm test` 退出0：Node test 42/42、UI检查18/18、skipped=0；`pnpm run smoke` 输出 `SMOKE_OK`，`pnpm run selftest` 输出 `SELFTEST_OK`。
 - smoke 期间 Chromium 报本机缓存目录拒绝访问与 GPU cache 创建失败，但窗口加载和退出码均正常；该非致命 warning 未通过本次知识收尾改动消除。
 
 ## 番仓 AniVault 0.10.2 收尾记录（2026-09-01）
