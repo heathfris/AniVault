@@ -6,6 +6,7 @@ const {
   applyTemplate,
   getEpisodeFileMatcher,
   matchFolderTemplate,
+  renameWithRetrySync,
 } = require('../../anime_updater.js');
 const { acquireFolderRenameLock } = require('../../src/folder-rename-lock.js');
 const { appendRotated } = require('../../src/logutil.js');
@@ -102,7 +103,7 @@ function applyQualifiedRenames(options) {
     const targetPath = path.join(downloadRoot, targetName);
     if (current.path === targetPath) continue;
     if (fs.existsSync(targetPath)) return { ok: false, error: `${item.anime_key}: 目标文件夹已存在 ${targetName}` };
-    try { fs.renameSync(current.path, targetPath); } catch (error) {
+    try { renameWithRetrySync(current.path, targetPath); } catch (error) {
       return { ok: false, error: `${item.anime_key}: 改名失败 ${error.message}` };
     }
   }

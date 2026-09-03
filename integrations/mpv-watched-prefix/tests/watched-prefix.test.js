@@ -65,6 +65,31 @@ test('只替换watched并在目标冲突时拒绝覆盖', () => {
   }
 });
 
+test('目录短暂EBUSY时自动重试改名', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'anivault-watch-busy-'));
+  const oldPath = path.join(root, '8_片名1-9');
+  const targetPath = path.join(root, '9_片名1-9');
+  const originalRename = fs.renameSync;
+  let attempts = 0;
+  try {
+    fs.mkdirSync(oldPath);
+    fs.renameSync = (from, to) => {
+      if (from === oldPath && to === targetPath && attempts++ < 2) {
+        throw Object.assign(new Error('resource busy or locked'), { code: 'EBUSY' });
+      }
+      return originalRename(from, to);
+    };
+    const config = { anime: { '片名': { folder_name: '{watched}_{name}{start}-{end}', downloaded_start: 1, downloaded_end: 9 } } };
+    const result = applyQualifiedRenames({ downloadRoot: root, config, qualified: [{ anime_key: '片名', episode: 9 }] });
+    assert.equal(result.ok, true);
+    assert.equal(attempts, 3);
+    assert.equal(fs.existsSync(targetPath), true);
+  } finally {
+    fs.renameSync = originalRename;
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test('正常关闭时会合并此前崩溃会话留下的未提交事件', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'anivault-recover-'));
   try {
