@@ -9,6 +9,7 @@ const {
   mergeEvents,
   applyQualifiedRenames,
   runSession,
+  terminateThumbfastForMpv,
 } = require('../apply-watched-prefix.js');
 
 function event(seq, episode, eligible, position, duration = 100) {
@@ -86,6 +87,62 @@ test('目录短暂EBUSY时自动重试改名', () => {
     assert.equal(fs.existsSync(targetPath), true);
   } finally {
     fs.renameSync = originalRename;
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('只强制结束带主mpv唯一thumbfast标记的子进程', () => {
+  const calls = [];
+  const killed = terminateThumbfastForMpv(26040, {
+    platform: 'win32',
+    spawnSync(command, args) {
+      calls.push([command, args]);
+      return calls.length === 1 ? { status: 0, stdout: '43210\r\n' } : { status: 0, stdout: '' };
+    },
+  });
+  assert.deepEqual(killed, [43210]);
+  assert.equal(calls[0][0], 'powershell.exe');
+  assert.match(calls[0][1].at(-1), /--input-ipc-server=thumbfast26040/);
+  assert.match(calls[0][1].at(-1), /thumbfast\.out26040/);
+  assert.match(calls[0][1].at(-1), /ParentProcessId -eq 26040/);
+  assert.deepEqual(calls[1], ['taskkill.exe', ['/PID', '43210', '/F']]);
+});
+
+test('thumbfast匹配不唯一时拒绝强制结束', () => {
+  const calls = [];
+  const killed = terminateThumbfastForMpv(26040, {
+    platform: 'win32',
+    spawnSync(command, args) {
+      calls.push([command, args]);
+      return { status: 0, stdout: '43210\r\n43211\r\n' };
+    },
+  });
+  assert.deepEqual(killed, []);
+  assert.equal(calls.length, 1);
+});
+
+test('目录重试耗尽后结束对应thumbfast并只再改名一次', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'anivault-watch-thumbfast-'));
+  const oldPath = path.join(root, '9_片名1-10');
+  const targetPath = path.join(root, '10_片名1-10');
+  let finalAttempts = 0;
+  try {
+    fs.mkdirSync(oldPath);
+    const config = { anime: { '片名': { folder_name: '{watched}_{name}{start}-{end}', downloaded_start: 1, downloaded_end: 10 } } };
+    const result = applyQualifiedRenames({
+      downloadRoot: root,
+      config,
+      qualified: [{ anime_key: '片名', episode: 10 }],
+      mpvPid: 26040,
+      renameWithRetry() { throw Object.assign(new Error('resource busy or locked'), { code: 'EBUSY' }); },
+      terminateThumbfast(pid) { assert.equal(pid, 26040); return [43210]; },
+      renameOnce(from, to) { finalAttempts++; fs.renameSync(from, to); },
+    });
+    assert.equal(result.ok, true);
+    assert.deepEqual(result.terminatedThumbfast, [43210]);
+    assert.equal(finalAttempts, 1);
+    assert.equal(fs.existsSync(targetPath), true);
+  } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
 });

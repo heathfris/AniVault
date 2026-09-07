@@ -2,6 +2,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 const {
   applyTemplate,
   getEpisodeFileMatcher,
@@ -81,8 +82,31 @@ function directoriesForAnime(downloadRoot, animeKey, anime) {
   })).filter(item => item.values);
 }
 
+function terminateThumbfastForMpv(mpvPid, options = {}) {
+  if ((options.platform || process.platform) !== 'win32' || !Number.isInteger(mpvPid) || mpvPid <= 0) return [];
+  const spawn = options.spawnSync || spawnSync;
+  const command = [
+    "$ErrorActionPreference='Stop'",
+    `$pipe='--input-ipc-server=thumbfast${mpvPid}'`,
+    `$output='thumbfast.out${mpvPid}'`,
+    `Get-CimInstance Win32_Process -Filter "Name='mpv.exe'" | Where-Object { $_.ParentProcessId -eq ${mpvPid} -and $_.CommandLine -like "*$pipe*" -and $_.CommandLine -like "*$output*" } | Select-Object -ExpandProperty ProcessId`,
+  ].join('; ');
+  const spawnOptions = { encoding: 'utf8', windowsHide: true, timeout: 5000 };
+  const found = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', command], spawnOptions);
+  if (found.status !== 0) return [];
+  const pids = [...new Set(String(found.stdout || '').split(/\s+/).map(Number)
+    .filter(pid => Number.isInteger(pid) && pid > 0 && pid !== mpvPid))];
+  if (pids.length !== 1) return [];
+  const killed = spawn('taskkill.exe', ['/PID', String(pids[0]), '/F'], spawnOptions);
+  return killed.status === 0 ? pids : [];
+}
+
 function applyQualifiedRenames(options) {
   const { downloadRoot, config, qualified } = options;
+  const renameWithRetry = options.renameWithRetry || renameWithRetrySync;
+  const renameOnce = options.renameOnce || fs.renameSync;
+  const terminateThumbfast = options.terminateThumbfast || terminateThumbfastForMpv;
+  const terminatedThumbfast = [];
   const lastByAnime = new Map();
   for (const item of qualified || []) lastByAnime.set(item.anime_key, item);
   for (const item of lastByAnime.values()) {
@@ -103,11 +127,19 @@ function applyQualifiedRenames(options) {
     const targetPath = path.join(downloadRoot, targetName);
     if (current.path === targetPath) continue;
     if (fs.existsSync(targetPath)) return { ok: false, error: `${item.anime_key}: 目标文件夹已存在 ${targetName}` };
-    try { renameWithRetrySync(current.path, targetPath); } catch (error) {
-      return { ok: false, error: `${item.anime_key}: 改名失败 ${error.message}` };
+    try { renameWithRetry(current.path, targetPath); } catch (error) {
+      let finalError = error;
+      if (['EPERM', 'EBUSY'].includes(error.code)) {
+        const killed = terminateThumbfast(options.mpvPid);
+        if (killed.length === 1) {
+          terminatedThumbfast.push(...killed);
+          try { renameOnce(current.path, targetPath); continue; } catch (retryError) { finalError = retryError; }
+        }
+      }
+      return { ok: false, error: `${item.anime_key}: 改名失败 ${finalError.message}`, terminatedThumbfast };
     }
   }
-  return { ok: true, error: null };
+  return { ok: true, error: null, terminatedThumbfast };
 }
 
 function readJson(file, fallback) {
@@ -189,10 +221,13 @@ function runSession(options) {
   const lock = acquireFolderRenameLock({ lockPath: path.join(stateDir, 'folder-rename.lock'), actor: 'mpv-watched-prefix' });
   if (!lock.ok) return { ok: false, error: `改名锁不可用: ${lock.reason}` };
   try {
-    const result = applyQualifiedRenames({ downloadRoot, config, qualified: merged.qualified });
+    const result = applyQualifiedRenames({ downloadRoot, config, qualified: merged.qualified, mpvPid: options.mpvPid });
     if (!result.ok) {
       appendRotated(logFile, `${new Date().toISOString()} BLOCKED ${result.error}`);
       return result;
+    }
+    if (result.terminatedThumbfast.length) {
+      appendRotated(logFile, `${new Date().toISOString()} RECOVERED thumbfast pid=${result.terminatedThumbfast.join(',')}`);
     }
     atomicWriteJson(stateFile, merged.state);
     appendRotated(logFile, `${new Date().toISOString()} OK session=${path.basename(sessionFile)} qualified=${merged.qualified.length}`);
@@ -228,6 +263,7 @@ async function main(argv) {
     sessionFile,
     contentFile: path.join(projectRoot, 'content.json'),
     downloadRoot: args['--download-root'] || process.env.AGE_DLOAD || 'D:\\idm下载',
+    mpvPid: pid,
   });
   if (!result.ok) throw new Error(result.error);
 }
@@ -245,5 +281,6 @@ module.exports = {
   mergeEvents,
   readJsonLines,
   runSession,
+  terminateThumbfastForMpv,
   waitForPid,
 };
