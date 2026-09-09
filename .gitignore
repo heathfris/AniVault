@@ -2,7 +2,9 @@ local/
 tools/ffmpeg/ffmpeg.exe
 tools/aria2/
 node_modules/
-PROGRESS.md
-content.json
-BLOCKED.md
+/PROGRESS.md
+/BLOCKED.md
+/content.json
 docs/personal/
+integrations/mpv-watched-prefix/PROGRESS.md
+integrations/mpv-watched-prefix/BLOCKED.md
