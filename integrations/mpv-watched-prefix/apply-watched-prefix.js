@@ -127,7 +127,7 @@ function applyQualifiedRenames(options) {
     const targetPath = path.join(downloadRoot, targetName);
     if (current.path === targetPath) continue;
     if (fs.existsSync(targetPath)) return { ok: false, error: `${item.anime_key}: 目标文件夹已存在 ${targetName}` };
-    try { renameWithRetry(current.path, targetPath); } catch (error) {
+    try { renameWithRetry(current.path, targetPath, { attempts: 120 }); } catch (error) {
       let finalError = error;
       if (['EPERM', 'EBUSY'].includes(error.code)) {
         const killed = terminateThumbfast(options.mpvPid);

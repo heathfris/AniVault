@@ -129,16 +129,21 @@ test('目录重试耗尽后结束对应thumbfast并只再改名一次', () => {
   try {
     fs.mkdirSync(oldPath);
     const config = { anime: { '片名': { folder_name: '{watched}_{name}{start}-{end}', downloaded_start: 1, downloaded_end: 10 } } };
+    let retryOptions;
     const result = applyQualifiedRenames({
       downloadRoot: root,
       config,
       qualified: [{ anime_key: '片名', episode: 10 }],
       mpvPid: 26040,
-      renameWithRetry() { throw Object.assign(new Error('resource busy or locked'), { code: 'EBUSY' }); },
+      renameWithRetry(_from, _to, options) {
+        retryOptions = options;
+        throw Object.assign(new Error('resource busy or locked'), { code: 'EBUSY' });
+      },
       terminateThumbfast(pid) { assert.equal(pid, 26040); return [43210]; },
       renameOnce(from, to) { finalAttempts++; fs.renameSync(from, to); },
     });
     assert.equal(result.ok, true);
+    assert.equal(retryOptions.attempts, 120);
     assert.deepEqual(result.terminatedThumbfast, [43210]);
     assert.equal(finalAttempts, 1);
     assert.equal(fs.existsSync(targetPath), true);

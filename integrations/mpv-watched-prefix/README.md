@@ -102,7 +102,7 @@ mpv观看同步
 
 Lua 在mpv关闭时按模块配置中的 `project_root` 调用项目内的 `apply-watched-prefix.js`。因此切换 Git 分支会立即改变下次关闭时使用的后台代码；切换前应确认目标分支已包含当前版本，不要让旧分支退回旧的改名行为。
 
-改名遇到 Windows `EBUSY` / `EPERM` 时，后台助手先按既有规则有界重试约10秒。如果仍失败，它会用已退出的主 mpv PID 精确匹配 `--input-ipc-server=thumbfast<PID>` 和 `thumbfast.out<PID>` 两个标记；只有唯一 `mpv.exe` 同时匹配时才强制结束该子进程，然后再改名一次。查询失败、零个或多个匹配都会拒绝强制结束，也绝不使用 `taskkill /IM mpv.exe`。成功恢复时，`watched-prefix.log` 会新增 `RECOVERED thumbfast pid=...`记录。
+改名遇到 Windows `EBUSY` / `EPERM` 时，后台助手每500毫秒重试，最多约60秒；目录一释放就立即更新。如果仍失败，它会用已退出的主 mpv PID 精确匹配 `--input-ipc-server=thumbfast<PID>` 和 `thumbfast.out<PID>` 两个标记；只有唯一 `mpv.exe` 同时匹配时才强制结束该子进程，然后再改名一次。查询失败、零个或多个匹配都会拒绝强制结束，也绝不使用 `taskkill /IM mpv.exe`。成功恢复时，`watched-prefix.log` 会新增 `RECOVERED thumbfast pid=...`记录。
 
 已有文件夹改用新模板前，先运行番仓现有dry-run核对配置和冲突，再手动把目录改成模板能唯一匹配的名称。程序不会在安装时静默批量迁移旧目录。
 
