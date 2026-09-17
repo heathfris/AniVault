@@ -101,6 +101,18 @@ function terminateThumbfastForMpv(mpvPid, options = {}) {
   return killed.status === 0 ? pids : [];
 }
 
+function findWindowsLockingProcesses(folderPath, options = {}) {
+  if ((options.platform || process.platform) !== 'win32') return [];
+  const spawn = options.spawnSync || spawnSync;
+  const script = path.join(__dirname, 'find-locking-processes.ps1');
+  const result = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', script, '-Path', folderPath], {
+    encoding: 'utf8', windowsHide: true, timeout: 10000,
+  });
+  if (result.status !== 0) throw new Error(String(result.stderr || `exit=${result.status}`).trim());
+  const parsed = JSON.parse(result.stdout || '[]');
+  return Array.isArray(parsed) ? parsed : [];
+}
+
 function applyQualifiedRenames(options) {
   const { downloadRoot, config, qualified } = options;
   const renameWithRetry = options.renameWithRetry || renameWithRetrySync;
@@ -136,7 +148,7 @@ function applyQualifiedRenames(options) {
           try { renameOnce(current.path, targetPath); continue; } catch (retryError) { finalError = retryError; }
         }
       }
-      return { ok: false, error: `${item.anime_key}: 改名失败 ${finalError.message}`, terminatedThumbfast };
+      return { ok: false, error: `${item.anime_key}: 改名失败 ${finalError.message}`, code: finalError.code, lockedFolder: current.path, terminatedThumbfast };
     }
   }
   return { ok: true, error: null, terminatedThumbfast };
@@ -221,8 +233,25 @@ function runSession(options) {
   const lock = acquireFolderRenameLock({ lockPath: path.join(stateDir, 'folder-rename.lock'), actor: 'mpv-watched-prefix' });
   if (!lock.ok) return { ok: false, error: `改名锁不可用: ${lock.reason}` };
   try {
-    const result = applyQualifiedRenames({ downloadRoot, config, qualified: merged.qualified, mpvPid: options.mpvPid });
+    const result = applyQualifiedRenames({
+      downloadRoot, config, qualified: merged.qualified, mpvPid: options.mpvPid,
+      renameWithRetry: options.renameWithRetry,
+      renameOnce: options.renameOnce,
+      terminateThumbfast: options.terminateThumbfast,
+    });
     if (!result.ok) {
+      if (result.lockedFolder && ['EPERM', 'EBUSY'].includes(result.code)) {
+        try {
+          const findLockingProcesses = options.findLockingProcesses || findWindowsLockingProcesses;
+          const lockers = findLockingProcesses(result.lockedFolder);
+          const processes = lockers.length
+            ? lockers.map(item => `${item.name || 'unknown'}(pid=${item.pid}${item.app ? `, app=${item.app}` : ''})`).join(', ')
+            : 'none';
+          appendRotated(logFile, `${new Date().toISOString()} LOCKERS path=${result.lockedFolder} processes=${processes}`);
+        } catch (error) {
+          appendRotated(logFile, `${new Date().toISOString()} LOCKERS path=${result.lockedFolder} probe-failed=${String(error.message || error).replace(/\s+/g, ' ')}`);
+        }
+      }
       appendRotated(logFile, `${new Date().toISOString()} BLOCKED ${result.error}`);
       return result;
     }
@@ -281,6 +310,7 @@ module.exports = {
   mergeEvents,
   readJsonLines,
   runSession,
+  findWindowsLockingProcesses,
   terminateThumbfastForMpv,
   waitForPid,
 };

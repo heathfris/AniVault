@@ -171,3 +171,59 @@ test('正常关闭时会合并此前崩溃会话留下的未提交事件', () =>
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+test('改名EBUSY时记录Windows占用进程', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'anivault-lockers-'));
+  try {
+    const stateDir = path.join(root, 'state');
+    const downloadRoot = path.join(root, 'downloads');
+    const folder = path.join(downloadRoot, '9_片名1-10');
+    fs.mkdirSync(stateDir, { recursive: true });
+    fs.mkdirSync(folder, { recursive: true });
+    const contentFile = path.join(root, 'content.json');
+    fs.writeFileSync(contentFile, JSON.stringify({ anime: { '片名': { folder_name: '{watched}_{name}{start}-{end}', downloaded_start: 1, downloaded_end: 10 } } }));
+    const sessionFile = path.join(stateDir, 'session-current.jsonl');
+    fs.writeFileSync(sessionFile, JSON.stringify(event(1, 10, 45, 90)) + '\n');
+    const result = runSession({
+      stateDir,
+      sessionFile,
+      contentFile,
+      downloadRoot,
+      renameWithRetry() { throw Object.assign(new Error('busy'), { code: 'EBUSY' }); },
+      findLockingProcesses(lockedFolder) {
+        assert.equal(lockedFolder, folder);
+        return [{ pid: 6444, name: 'avp.exe', app: 'Kaspersky' }];
+      },
+    });
+    assert.equal(result.ok, false);
+    assert.match(fs.readFileSync(path.join(stateDir, 'watched-prefix.log'), 'utf8'), /LOCKERS .*avp\.exe\(pid=6444, app=Kaspersky\)/);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('占用查询失败不覆盖原改名错误', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'anivault-locker-failure-'));
+  try {
+    const stateDir = path.join(root, 'state');
+    const downloadRoot = path.join(root, 'downloads');
+    fs.mkdirSync(stateDir, { recursive: true });
+    fs.mkdirSync(path.join(downloadRoot, '9_片名1-10'), { recursive: true });
+    const contentFile = path.join(root, 'content.json');
+    fs.writeFileSync(contentFile, JSON.stringify({ anime: { '片名': { folder_name: '{watched}_{name}{start}-{end}', downloaded_start: 1, downloaded_end: 10 } } }));
+    const sessionFile = path.join(stateDir, 'session-current.jsonl');
+    fs.writeFileSync(sessionFile, JSON.stringify(event(1, 10, 45, 90)) + '\n');
+    const result = runSession({
+      stateDir,
+      sessionFile,
+      contentFile,
+      downloadRoot,
+      renameWithRetry() { throw Object.assign(new Error('original busy'), { code: 'EBUSY' }); },
+      findLockingProcesses() { throw new Error('probe unavailable'); },
+    });
+    assert.equal(result.error, '片名: 改名失败 original busy');
+    assert.match(fs.readFileSync(path.join(stateDir, 'watched-prefix.log'), 'utf8'), /LOCKERS .*probe-failed=probe unavailable/);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});

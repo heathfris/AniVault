@@ -104,6 +104,8 @@ Lua 在mpv关闭时按模块配置中的 `project_root` 调用项目内的 `appl
 
 改名遇到 Windows `EBUSY` / `EPERM` 时，后台助手每500毫秒重试，最多约60秒；目录一释放就立即更新。如果仍失败，它会用已退出的主 mpv PID 精确匹配 `--input-ipc-server=thumbfast<PID>` 和 `thumbfast.out<PID>` 两个标记；只有唯一 `mpv.exe` 同时匹配时才强制结束该子进程，然后再改名一次。查询失败、零个或多个匹配都会拒绝强制结束，也绝不使用 `taskkill /IM mpv.exe`。成功恢复时，`watched-prefix.log` 会新增 `RECOVERED thumbfast pid=...`记录。
 
+最终仍因 `EBUSY` / `EPERM` 失败时，助手会用 Windows Restart Manager 只读查询当前动漫目录内的文件占用者，向 `watched-prefix.log` 写入 `LOCKERS path=... processes=...`。查询失败只记录 `probe-failed`，不会覆盖原改名错误，也不会结束查到的进程。
+
 已有文件夹改用新模板前，先运行番仓现有dry-run核对配置和冲突，再手动把目录改成模板能唯一匹配的名称。程序不会在安装时静默批量迁移旧目录。
 
 ## 怎么验证

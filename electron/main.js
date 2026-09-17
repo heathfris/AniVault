@@ -15,6 +15,7 @@ const {
 const { countEpisodeFiles, findFolder } = require('../anime_updater.js');
 const { summarize } = require('../src/summary.js');
 const { createManager: createMpvSyncManager } = require('../src/mpv-watched-prefix-manager.js');
+const { getDataRoot } = require('../src/app-paths.js');
 
 const SMOKE_TIMEOUT_MS = 30 * 1000;
 const RUN_LOG_CAP = 500;
@@ -30,29 +31,33 @@ function appRoot() {
   return app.getAppPath();
 }
 
+function dataRoot() {
+  return getDataRoot(app, appRoot());
+}
+
 function getMpvSyncManager() {
   if (!mpvSyncManager) mpvSyncManager = createMpvSyncManager({ projectRoot: appRoot() });
   return mpvSyncManager;
 }
 
 function configFile() {
-  return path.join(appRoot(), 'content.json');
+  return path.join(dataRoot(), 'content.json');
 }
 
 function progressFile() {
-  return path.join(appRoot(), 'PROGRESS.md');
+  return path.join(dataRoot(), 'PROGRESS.md');
 }
 
 function blockedFile() {
-  return path.join(appRoot(), 'BLOCKED.md');
+  return path.join(dataRoot(), 'BLOCKED.md');
 }
 
 function lockFile() {
-  return path.join(appRoot(), 'local', 'run.lock');
+  return path.join(dataRoot(), 'local', 'run.lock');
 }
 
 function csvFile() {
-  return path.join(appRoot(), 'local', '待下载清单.csv');
+  return path.join(dataRoot(), 'local', '待下载清单.csv');
 }
 
 function updaterScript() {
@@ -101,6 +106,26 @@ function pushRunLog(line) {
   if (runLog.length > RUN_LOG_CAP) runLog.splice(0, runLog.length - RUN_LOG_CAP);
 }
 
+function ensureDataRoot() {
+  fs.mkdirSync(path.join(dataRoot(), 'local'), { recursive: true });
+  if (app.isPackaged && !fs.existsSync(configFile())) {
+    atomicWriteJson(configFile(), {
+      fetch_time: '',
+      base_url: 'https://www.agedm.io',
+      download_dir: '',
+      defaults: {
+        max_download: 10,
+        max_parallel: 1,
+        download_engine: 'aria2',
+        attempt_timeout_min: 45,
+        auto_repair: true,
+        auto_close_idm: true,
+      },
+      anime: {},
+    });
+  }
+}
+
 function sendRunEvent(channel, payload) {
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(channel, payload);
 }
@@ -125,7 +150,13 @@ function getRunner() {
     runner = createRunner({
       scriptPath: updaterScript(),
       lockPath: lockFile(),
-      extraEnv: { AGE_RUN_MODE: 'interactive' },
+      extraEnv: {
+        AGE_RUN_MODE: 'interactive',
+        AGE_CONTENT: configFile(),
+        AGE_PROGRESS: progressFile(),
+        AGE_BLOCKED: blockedFile(),
+        AGE_CSV: csvFile(),
+      },
       onStdout: line => {
         pushRunLog(line);
         sendRunEvent('run:log', { stream: 'stdout', line });
@@ -435,6 +466,7 @@ function registerIpc() {
 }
 
 app.whenReady().then(() => {
+  ensureDataRoot();
   registerIpc();
   const shotIdx = process.argv.indexOf('--screenshot');
   if (shotIdx >= 0) {

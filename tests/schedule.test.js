@@ -105,6 +105,8 @@ test('计划任务入口设置后台环境并隐藏等待子进程', () => {
   const launcher = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'auto-run.vbs'), 'utf8');
   assert.match(launcher, /ELECTRON_RUN_AS_NODE/);
   assert.match(launcher, /AGE_RUN_MODE/);
+  assert.match(launcher, /AniVault\.exe/);
+  assert.match(launcher, /AGE_CONTENT/);
   assert.match(launcher, /shell\.Run\(command, 0, True\)/i);
   assert.match(launcher, /WScript\.Quit exitCode/i);
 });
