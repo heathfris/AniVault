@@ -8,6 +8,7 @@ const path = require('node:path');
 const {
   mergeEvents,
   applyQualifiedRenames,
+  leaveDirectory,
   runSession,
   terminateThumbfastForMpv,
 } = require('../apply-watched-prefix.js');
@@ -225,5 +226,43 @@ test('占用查询失败不覆盖原改名错误', () => {
     assert.match(fs.readFileSync(path.join(stateDir, 'watched-prefix.log'), 'utf8'), /LOCKERS .*probe-failed=probe unavailable/);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('工作目录在待改名目录内时先离开再改名', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'anivault-cwd-'));
+  try {
+    const folder = path.join(root, '9_片名1-10');
+    fs.mkdirSync(folder);
+    const target = path.join(root, '10_片名1-10');
+    const config = { anime: { '片名': { folder_name: '{watched}_{name}{start}-{end}', downloaded_start: 1, downloaded_end: 10 } } };
+    let leftFrom = null;
+    const result = applyQualifiedRenames({
+      downloadRoot: root,
+      config,
+      qualified: [{ anime_key: '片名', episode: 10 }],
+      leaveDirectory(targetPath) { leftFrom = targetPath; },
+    });
+    assert.equal(result.ok, true);
+    assert.equal(leftFrom, folder);
+    assert.equal(fs.existsSync(target), true);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('当前目录不在待改名目录内时不切换工作目录', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'anivault-cwd-outside-'));
+  const foreign = fs.mkdtempSync(path.join(os.tmpdir(), 'anivault-cwd-elsewhere-'));
+  const calls = [];
+  try {
+    const switched = leaveDirectory(root, dir => calls.push(dir), () => foreign);
+    assert.equal(switched, false);
+    assert.deepEqual(calls, []);
+    assert.equal(leaveDirectory(root, dir => calls.push(dir), () => path.join(root, 'sub')), true);
+    assert.deepEqual(calls, [os.tmpdir()]);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(foreign, { recursive: true, force: true });
   }
 });

@@ -1,6 +1,7 @@
 'use strict';
 
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const {
@@ -113,11 +114,23 @@ function findWindowsLockingProcesses(folderPath, options = {}) {
   return Array.isArray(parsed) ? parsed : [];
 }
 
+function isInsideDirectory(dir, target) {
+  const relative = path.relative(path.resolve(dir), path.resolve(target));
+  return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
+}
+
+function leaveDirectory(targetPath, chdir = process.chdir.bind(process), cwd = () => process.cwd()) {
+  if (!isInsideDirectory(targetPath, cwd())) return false;
+  chdir(os.tmpdir());
+  return true;
+}
+
 function applyQualifiedRenames(options) {
   const { downloadRoot, config, qualified } = options;
   const renameWithRetry = options.renameWithRetry || renameWithRetrySync;
   const renameOnce = options.renameOnce || fs.renameSync;
   const terminateThumbfast = options.terminateThumbfast || terminateThumbfastForMpv;
+  const leaveDir = options.leaveDirectory || leaveDirectory;
   const terminatedThumbfast = [];
   const lastByAnime = new Map();
   for (const item of qualified || []) lastByAnime.set(item.anime_key, item);
@@ -126,6 +139,7 @@ function applyQualifiedRenames(options) {
     const hits = directoriesForAnime(downloadRoot, item.anime_key, anime);
     if (hits.length !== 1) return { ok: false, error: `${item.anime_key}: 目录匹配数为${hits.length}` };
     const current = hits[0];
+    leaveDir(current.path);
     const start = current.values.start ?? anime.downloaded_start ?? 0;
     const end = current.values.end ?? anime.downloaded_end ?? 0;
     if (item.episode < start || item.episode > end) return { ok: false, error: `${item.anime_key}: 集数${item.episode}超出${start}-${end}` };
@@ -307,6 +321,7 @@ if (require.main === module) {
 module.exports = {
   applyQualifiedRenames,
   enrichEvents,
+  leaveDirectory,
   mergeEvents,
   readJsonLines,
   runSession,
