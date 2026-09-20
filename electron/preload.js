@@ -24,6 +24,7 @@ contextBridge.exposeInMainWorld('anivault', {
   readConfig: () => ipcRenderer.invoke('config:read'),
   validateConfig: (cfg) => ipcRenderer.invoke('config:validate', cfg),
   saveConfig: (cfg) => ipcRenderer.invoke('config:save', cfg),
+  scheduleStatus: () => ipcRenderer.invoke('schedule:status'),
   runStart: (mode) => ipcRenderer.invoke('run:start', mode),
   runStop: () => ipcRenderer.invoke('run:stop'),
   runStatus: () => ipcRenderer.invoke('run:status'),

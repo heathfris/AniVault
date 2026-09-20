@@ -30,6 +30,9 @@ function createManager(options = {}) {
   const projectRoot = path.resolve(options.projectRoot || path.join(__dirname, '..'));
   const stateDir = path.resolve(options.stateDir || path.join(projectRoot, 'local', 'mpv-watched-prefix'));
   const sourceDir = path.resolve(options.sourceDir || path.join(projectRoot, 'integrations', 'mpv-watched-prefix'));
+  const contentFile = path.resolve(options.contentFile || path.join(projectRoot, 'content.json'));
+  const downloadRoot = path.resolve(options.downloadRoot || process.env.AGE_DLOAD || path.join(projectRoot, 'downloads'));
+  const runAsNode = options.runAsNode === true || path.basename(process.execPath).toLowerCase() !== 'node.exe';
   function findNodePath() {
     if (options.nodePath) return path.resolve(options.nodePath);
     if (process.env.AGE_NODE) return path.resolve(process.env.AGE_NODE);
@@ -58,6 +61,9 @@ function createManager(options = {}) {
       `project_root=${clean(projectRoot)}`,
       `node_path=${clean(nodePath)}`,
       `state_dir=${clean(stateDir)}`,
+      `content_file=${clean(contentFile)}`,
+      `download_root=${clean(downloadRoot)}`,
+      `run_as_node=${runAsNode ? 'yes' : 'no'}`,
       '',
     ].join('\n');
   }

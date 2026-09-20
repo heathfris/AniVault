@@ -50,7 +50,13 @@ function matchFolderTemplate(tpl, folderName, title) {
 }
 
 function validName(name) {
-  return typeof name === 'string' && name.length > 0 && !BAD_NAME_RE.test(name);
+  return typeof name === 'string'
+    && name.length > 0
+    && name.trim().length > 0
+    && name !== '.'
+    && name !== '..'
+    && !/[\u0000-\u001f\u007f]/.test(name)
+    && !BAD_NAME_RE.test(name);
 }
 
 function resolveFolderName(anime, folderInfo, end) {

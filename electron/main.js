@@ -16,6 +16,7 @@ const { countEpisodeFiles, findFolder } = require('../anime_updater.js');
 const { summarize } = require('../src/summary.js');
 const { createManager: createMpvSyncManager } = require('../src/mpv-watched-prefix-manager.js');
 const { getDataRoot } = require('../src/app-paths.js');
+const { withFileLock } = require('../src/file-lock.js');
 
 const SMOKE_TIMEOUT_MS = 30 * 1000;
 const RUN_LOG_CAP = 500;
@@ -36,7 +37,15 @@ function dataRoot() {
 }
 
 function getMpvSyncManager() {
-  if (!mpvSyncManager) mpvSyncManager = createMpvSyncManager({ projectRoot: appRoot() });
+  if (!mpvSyncManager) {
+    mpvSyncManager = createMpvSyncManager({
+      projectRoot: appRoot(),
+      stateDir: path.join(dataRoot(), 'local', 'mpv-watched-prefix'),
+      contentFile: configFile(),
+      downloadRoot: downloadDir(),
+      runAsNode: process.versions.electron !== undefined,
+    });
+  }
   return mpvSyncManager;
 }
 
@@ -54,6 +63,10 @@ function blockedFile() {
 
 function lockFile() {
   return path.join(dataRoot(), 'local', 'run.lock');
+}
+
+function writeLockFile() {
+  return path.join(dataRoot(), 'local', 'content-write.lock');
 }
 
 function csvFile() {
@@ -95,6 +108,22 @@ function atomicWriteJson(file, data) {
     try { fs.rmSync(tmp, { force: true }); } catch (_) { /* 忽略 */ }
     throw e;
   }
+}
+
+function writeSkippedEpisode(file, title, ep) {
+  return withFileLock(writeLockFile(), () => {
+    const cfg = readConfig(file);
+    if (!cfg.ok) throw new Error(cfg.error);
+    const info = cfg.data.anime && cfg.data.anime[title];
+    if (!info) throw new Error('找不到该番剧: ' + title);
+    const skip = Array.isArray(info.skip_eps)
+      ? info.skip_eps.filter(x => Number.isInteger(x) && x > 0)
+      : [];
+    if (!skip.includes(ep)) skip.push(ep);
+    skip.sort((a, b) => a - b);
+    info.skip_eps = skip;
+    atomicWriteJson(file, cfg.data);
+  }, 'electron-csv-skip');
 }
 
 function fileHash(file) {
@@ -156,6 +185,7 @@ function getRunner() {
         AGE_PROGRESS: progressFile(),
         AGE_BLOCKED: blockedFile(),
         AGE_CSV: csvFile(),
+        AGE_WRITE_LOCK: writeLockFile(),
       },
       onStdout: line => {
         pushRunLog(line);
@@ -186,6 +216,10 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
     },
+  });
+  win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  win.webContents.on('will-navigate', event => {
+    if (!event.url.startsWith('file://')) event.preventDefault();
   });
   win.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
   mainWindow = win;
@@ -330,11 +364,13 @@ function registerIpc() {
     const vr = validateConfig(cfg);
     if (!vr.ok) return { ok: false, errors: vr.errors };
     try {
-      atomicWriteJson(configFile(), cfg);
-      const schedule = syncSchedule({
-        time: cfg.fetch_time,
-        launcherPath: path.join(appRoot(), 'scripts', 'auto-run.vbs'),
-      });
+      const schedule = withFileLock(writeLockFile(), () => {
+        atomicWriteJson(configFile(), cfg);
+        return syncSchedule({
+          time: cfg.fetch_time,
+          launcherPath: path.join(appRoot(), 'scripts', 'auto-run.vbs'),
+        });
+      }, 'electron-config-save');
       return { ok: true, schedule };
     } catch (e) {
       return { ok: false, error: '写入失败: ' + e.message };
@@ -423,7 +459,7 @@ function registerIpc() {
     skip.sort((a, b) => a - b);
     info.skip_eps = skip;
     try {
-      atomicWriteJson(configFile(), cfg.data);
+      writeSkippedEpisode(configFile(), title, ep);
       return { ok: true };
     } catch (e) {
       return { ok: false, error: '写入失败: ' + e.message };
@@ -436,7 +472,7 @@ function registerIpc() {
       return { ok: false, error: '参数不合法' };
     }
     try {
-      removeCsvRow(csvFile(), title, ep);
+      withFileLock(writeLockFile(), () => removeCsvRow(csvFile(), title, ep), 'electron-csv-remove');
       return { ok: true };
     } catch (e) {
       return { ok: false, error: '删除失败: ' + e.message };

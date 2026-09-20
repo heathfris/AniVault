@@ -5,18 +5,18 @@ let chromium;
 try {
   ({ chromium } = require('playwright-core'));
 } catch (error) {
-  // Keep compatibility with the original Codex runtime when running locally
-  // before project dependencies have been installed.
-  ({ chromium } = require('C:/Users/15269/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright-core'));
+  chromium = null;
 }
 const { appendRotated } = require('./src/logutil.js');
+const { withFileLock } = require('./src/file-lock.js');
+const { stringifyCsvField } = require('./src/csv.js');
 const folderOps = require('./src/folders.js');
 const siteOps = require('./src/site.js');
 const downloadOps = require('./src/download.js');
 
 const WORK = __dirname;
-const EDGE = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
-const IDM = 'F:\\IDM\\Internet Download Manager\\IDMan.exe';
+const EDGE = process.env.AGE_EDGE || 'msedge.exe';
+const IDM = process.env.AGE_IDM || 'IDMan.exe';
 function getCsvPath(workDir = WORK, env = process.env) {
   return env.AGE_CSV || path.join(workDir, 'local', '待下载清单.csv');
 }
@@ -83,6 +83,7 @@ const CONTENT = process.env.AGE_CONTENT || path.join(WORK, 'content.json');
 const CSV = getCsvPath();
 const PROGRESS = process.env.AGE_PROGRESS || path.join(WORK, 'PROGRESS.md');
 const BLOCKED = process.env.AGE_BLOCKED || path.join(WORK, 'BLOCKED.md');
+const WRITE_LOCK = process.env.AGE_WRITE_LOCK || path.join(path.dirname(CONTENT), 'local', 'content-write.lock');
 const FOLDER_RENAME_LOCK = process.env.AGE_FOLDER_RENAME_LOCK || path.join(WORK, 'local', 'mpv-watched-prefix', 'folder-rename.lock');
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
 const MIN_SIZE = 100 * 1024 * 1024;
@@ -267,9 +268,25 @@ async function closeIdmIfIdle(waitMs) {
 }
 
 function writeCsv(rows, csvPath = CSV) {
-  const lines = ['动漫,集数,播放页URL', ...rows.map(r => `${r.title},${r.ep},${r.url}`)];
-  fs.mkdirSync(path.dirname(csvPath), { recursive: true });
-  fs.writeFileSync(csvPath, '\uFEFF' + lines.join('\r\n'), 'utf8');
+  const lines = ['动漫,集数,播放页URL', ...rows.map(r => `${stringifyCsvField(r.title)},${r.ep},${stringifyCsvField(r.url)}`)];
+  withFileLock(WRITE_LOCK, () => {
+    fs.mkdirSync(path.dirname(csvPath), { recursive: true });
+    fs.writeFileSync(csvPath, '\uFEFF' + lines.join('\r\n'), 'utf8');
+  }, 'anime-updater-csv');
+}
+
+function mergeUpdaterChanges(latestOnDisk, updaterContent, beforeRun) {
+  const merged = JSON.parse(JSON.stringify(latestOnDisk));
+  if (!merged.anime || typeof merged.anime !== 'object') merged.anime = {};
+  const fields = ['site_id', 'update_time', 'downloaded_start', 'downloaded_end', 'site_latest'];
+  for (const [title, current] of Object.entries(updaterContent.anime || {})) {
+    const before = (beforeRun.anime && beforeRun.anime[title]) || {};
+    if (!merged.anime[title] || typeof merged.anime[title] !== 'object') merged.anime[title] = {};
+    for (const field of fields) {
+      if (JSON.stringify(current[field]) !== JSON.stringify(before[field])) merged.anime[title][field] = current[field];
+    }
+  }
+  return merged;
 }
 
 async function processOneAnime(title, info, content, options = {}) {
@@ -428,6 +445,7 @@ async function processOneAnime(title, info, content, options = {}) {
 }
 
 async function processAllAnime(content, deps = {}) {
+  const beforeRun = JSON.parse(JSON.stringify(content));
   DLOAD = getDownloadDir(content);
   const browserPool = createBrowserPool(deps.createBrowser);
   const dryRun = deps.dryRun === true;
@@ -462,7 +480,14 @@ async function processAllAnime(content, deps = {}) {
         reportBlocked(`${title}: ${e.message}`);
       }
     }
-    if (changed) fs.writeFileSync(CONTENT, JSON.stringify(content, null, 2) + '\n', 'utf8');
+    if (changed) {
+      withFileLock(WRITE_LOCK, () => {
+        const latest = JSON.parse(fs.readFileSync(CONTENT, 'utf8'));
+        const merged = mergeUpdaterChanges(latest, content, beforeRun);
+        fs.writeFileSync(CONTENT, JSON.stringify(merged, null, 2) + '\n', 'utf8');
+        content.anime = merged.anime;
+      }, 'anime-updater-content');
+    }
     if (rows.length > 0 || failed === 0) {
       reportCsv(rows);
       reportProgress(`待下载清单已写: ${CSV}（${rows.length} 行）`);
@@ -496,7 +521,7 @@ async function main() {
   await processAllAnime(content, { dryRun });
 }
 
-module.exports = { searchSite, parseHomeUpdateTimes, parseFolderName, applyTemplate, matchFolderTemplate, validName, resolveFolderName, resolveFileName, renameFolder, safeRenameFolder, renameWithRetrySync, getMediaDurationSeconds, isDurationPlausible, chooseRecoverablePart, getEpisodeFileMatcher, countEpisodeFiles, findEpisodeFile, planDownloadRange, findMissingEps, resolveDownloadedStart, computeNewEnd, filterRowsByResults, withoutSkippedEps, getBase, resetBaseCache, getDownloadDir, engineChain, getCsvPath, getFfmpegPath, getAria2Path, getFfmpegTempPath, formatLogTime, isIdmRunning, ensureIdmMinimized, idmHasActivity, closeIdmIfIdle, blocked, progress, getMaxEp, getPlayUrl, callIdm, callFfmpeg, callAria2, fetchText, runPool, processOneAnime, processAllAnime, waitForFile, downloadEpisode, findFolder, findFolderByTitle, writeCsv };
+module.exports = { searchSite, parseHomeUpdateTimes, parseFolderName, applyTemplate, matchFolderTemplate, validName, resolveFolderName, resolveFileName, renameFolder, safeRenameFolder, renameWithRetrySync, getMediaDurationSeconds, isDurationPlausible, chooseRecoverablePart, getEpisodeFileMatcher, countEpisodeFiles, findEpisodeFile, planDownloadRange, findMissingEps, resolveDownloadedStart, computeNewEnd, filterRowsByResults, withoutSkippedEps, getBase, resetBaseCache, getDownloadDir, engineChain, getCsvPath, getFfmpegPath, getAria2Path, getFfmpegTempPath, formatLogTime, isIdmRunning, ensureIdmMinimized, idmHasActivity, closeIdmIfIdle, blocked, progress, getMaxEp, getPlayUrl, callIdm, callFfmpeg, callAria2, fetchText, runPool, processOneAnime, processAllAnime, waitForFile, downloadEpisode, findFolder, findFolderByTitle, writeCsv, mergeUpdaterChanges };
 
 if (require.main === module) {
   main().catch(e => {

@@ -2,12 +2,41 @@
 
 const fs = require('node:fs');
 
+function parseCsvRecord(line) {
+  const parts = [];
+  let value = '';
+  let quoted = false;
+  for (let i = 0; i < line.length; i += 1) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (quoted && line[i + 1] === '"') {
+        value += '"';
+        i += 1;
+      } else {
+        quoted = !quoted;
+      }
+    } else if (ch === ',' && !quoted) {
+      parts.push(value);
+      value = '';
+    } else {
+      value += ch;
+    }
+  }
+  parts.push(value);
+  return parts;
+}
+
+function stringifyCsvField(value) {
+  const text = String(value ?? '');
+  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
 function parseCsv(text) {
   const rows = [];
   const lines = String(text).replace(/^\uFEFF/, '').split(/\r?\n/);
   for (const line of lines) {
     if (!line.trim()) continue;
-    const parts = line.split(',');
+    const parts = parseCsvRecord(line);
     if (parts.length < 3) continue;
     const ep = parseInt(parts[1], 10);
     if (!Number.isInteger(ep)) continue;
@@ -33,7 +62,7 @@ function removeCsvRow(file, title, ep) {
   const matches = [];
   for (let i = 1; i < lines.length; i += 1) {
     if (!lines[i].trim()) continue;
-    const parts = lines[i].split(',');
+    const parts = parseCsvRecord(lines[i]);
     const rowEp = Number.parseInt(parts[1], 10);
     if (parts.length < 3 || !Number.isInteger(rowEp)) throw new Error(`CSV格式错误：第${i + 1}行不合法`);
     if (parts[0].trim() === title && rowEp === ep) matches.push(i);
@@ -58,4 +87,4 @@ function tailFile(file, n) {
   return lines.slice(Math.max(0, lines.length - n));
 }
 
-module.exports = { parseCsv, readCsv, removeCsvRow, tailFile };
+module.exports = { parseCsv, readCsv, removeCsvRow, tailFile, stringifyCsvField };

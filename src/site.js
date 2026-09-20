@@ -45,9 +45,11 @@ async function fetchText(url, referer, deps = {}) {
     const timeoutPromise = new Promise((_, reject) => { timeoutReject = reject; });
     const timer = setTimeout(() => { controller.abort(); timeoutReject(new Error(`请求超时（${timeoutMs}ms）: ${url}`)); }, timeoutMs);
     try {
-      const r = await Promise.race([fetchImpl(url, { headers, signal: controller.signal }), timeoutPromise]);
-      if (!r.ok) throw new Error(`HTTP ${r.status} ${url}`);
-      return r.text();
+      const textPromise = fetchImpl(url, { headers, signal: controller.signal }).then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status} ${url}`);
+        return r.text();
+      });
+      return await Promise.race([textPromise, timeoutPromise]);
     } catch (e) {
       if (e.name === 'AbortError' || /超时/.test(e.message || '')) throw new Error(`请求超时（${timeoutMs}ms）: ${url}`);
       lastError = e;
@@ -61,12 +63,16 @@ function fetcher(deps) { return deps && deps.fetchTextImpl ? deps.fetchTextImpl 
 
 async function searchSite(title, deps = {}) {
   const html = await fetcher(deps)(`${baseOf(deps)}/search?query=${encodeURIComponent(title)}`, undefined, deps);
-  const re = /<a href="http:\/\/www\.agedm\.io\/detail\/(\d+)"[^>]*>([^<]+)<\/a>/g;
+  const re = /<a href="([^"]+)"[^>]*>([^<]+)<\/a>/g;
   let m, first = null;
   while ((m = re.exec(html))) {
+    let href;
+    try { href = new URL(m[1], baseOf(deps)); } catch (_) { continue; }
+    const detail = href.pathname.match(/^\/detail\/(\d+)$/);
+    if (!detail) continue;
     const t = m[2].trim();
-    if (!first) first = { id: parseInt(m[1], 10), title: t };
-    if (t === title) return { id: parseInt(m[1], 10), title: t };
+    if (!first) first = { id: parseInt(detail[1], 10), title: t };
+    if (t === title) return { id: parseInt(detail[1], 10), title: t };
   }
   return first;
 }

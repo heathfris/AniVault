@@ -45,19 +45,19 @@ function createCard(title, item, expanded = false) {
     </div>
     <div class="fields">
       <label>AGE站内编号
-        <input class="f-site_id" type="number" step="1" value="${item.site_id ?? ''}">
+        <input class="f-site_id" type="number" step="1" value="${escapeHtml(item.site_id ?? '')}">
       </label>
       <label>每周更新时间
         <input class="f-update_time" placeholder="HH:MM" value="${escapeHtml(item.update_time ?? '')}">
       </label>
       <label>已下载起始集
-        <input class="f-downloaded_start" type="number" step="1" value="${item.downloaded_start ?? ''}">
+        <input class="f-downloaded_start" type="number" step="1" value="${escapeHtml(item.downloaded_start ?? '')}">
       </label>
       <label>已下载至第几集
-        <input class="f-downloaded_end" type="number" step="1" value="${item.downloaded_end ?? ''}">
+        <input class="f-downloaded_end" type="number" step="1" value="${escapeHtml(item.downloaded_end ?? '')}">
       </label>
       <label>站内最新集
-        <input class="f-site_latest" type="number" step="1" value="${item.site_latest ?? ''}">
+        <input class="f-site_latest" type="number" step="1" value="${escapeHtml(item.site_latest ?? '')}">
       </label>
       <label>文件夹命名模板
         <input class="f-folder_name" value="${escapeHtml(item.folder_name ?? '')}">
@@ -186,6 +186,8 @@ async function load() {
   }
   state.config = r.data;
   render();
+  const schedule = await window.anivault.scheduleStatus();
+  $('schedule-status').textContent = schedule.exists ? '计划任务：已存在' : '计划任务：未创建';
   $('save-msg').textContent = '已载入 content.json';
   $('status').textContent = '已连接';
   loadEnv();

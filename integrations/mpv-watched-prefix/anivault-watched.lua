@@ -6,6 +6,9 @@ local opts = {
     project_root = '',
     node_path = '',
     state_dir = '',
+    content_file = '',
+    download_root = '',
+    run_as_node = 'no',
 }
 options.read_options(opts, 'anivault-watched')
 
@@ -27,7 +30,7 @@ if enabled ~= 'yes' then
     return
 end
 
-if opts.project_root == '' or opts.node_path == '' or opts.state_dir == '' then
+if opts.project_root == '' or opts.node_path == '' or opts.state_dir == '' or opts.content_file == '' or opts.download_root == '' then
     mp.msg.error('anivault-watched: script options are incomplete')
     return
 end
@@ -128,8 +131,11 @@ local function on_shutdown()
             '--pid=' .. tostring(pid),
             '--project-root=' .. opts.project_root,
             '--state-dir=' .. opts.state_dir,
+            '--content=' .. opts.content_file,
+            '--download-root=' .. opts.download_root,
             '--session=' .. session_file,
         },
+        env = opts.run_as_node == 'yes' and { ELECTRON_RUN_AS_NODE = '1' } or nil,
         cancellable = false,
     })
 end

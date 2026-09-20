@@ -13,6 +13,8 @@ function fixture() {
   const sourceDir = path.join(projectRoot, 'integrations', 'mpv-watched-prefix');
   const stateDir = path.join(projectRoot, 'local', 'mpv-watched-prefix');
   const mpvRoot = path.join(root, 'mpv');
+  const contentFile = path.join(root, 'user-data', 'content.json');
+  const downloadRoot = path.join(root, 'downloads');
   fs.mkdirSync(sourceDir, { recursive: true });
   fs.mkdirSync(path.join(mpvRoot, 'portable_config'), { recursive: true });
   fs.writeFileSync(path.join(mpvRoot, 'mpv.exe'), 'stub');
@@ -23,9 +25,22 @@ function fixture() {
     sourceDir,
     stateDir,
     mpvRoot,
-    manager: createManager({ projectRoot, stateDir, sourceDir, nodePath: process.execPath }),
+    contentFile,
+    downloadRoot,
+    manager: createManager({ projectRoot, stateDir, sourceDir, nodePath: process.execPath, contentFile, downloadRoot, runAsNode: true }),
   };
 }
+
+test('Portable mpv配置记录用户数据路径和Electron Node模式', async () => {
+  const f = fixture();
+  try {
+    const installed = await f.manager.install({ mpvRoot: f.mpvRoot });
+    const config = fs.readFileSync(installed.status.targets.config, 'utf8');
+    assert.match(config, new RegExp(`content_file=${f.contentFile.replace(/\\/g, '/')}`));
+    assert.match(config, new RegExp(`download_root=${f.downloadRoot.replace(/\\/g, '/')}`));
+    assert.match(config, /run_as_node=yes/);
+  } finally { fs.rmSync(f.root, { recursive: true, force: true }); }
+});
 
 test('安装到临时mpv目录且默认停用', async () => {
   const f = fixture();

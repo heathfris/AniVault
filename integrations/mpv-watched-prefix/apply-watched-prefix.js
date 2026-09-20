@@ -290,7 +290,7 @@ async function main(argv) {
   const result = runSession({
     stateDir,
     sessionFile,
-    contentFile: path.join(projectRoot, 'content.json'),
+    contentFile: path.resolve(args['--content'] || path.join(projectRoot, 'content.json')),
     downloadRoot: args['--download-root'] || process.env.AGE_DLOAD || 'D:\\idm下载',
     mpvPid: pid,
   });

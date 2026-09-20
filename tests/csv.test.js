@@ -22,6 +22,12 @@ test('parseCsv 去 BOM、跳表头、跳空行', () => {
   assert.deepEqual(rows[0], { title: '再见，拉拉', ep: 6, url: 'https://www.agedm.io/play/20260166/1/6' });
 });
 
+test('parseCsv支持带逗号和引号转义的字段', () => {
+  const { parseCsv } = require('../src/csv.js');
+  const rows = parseCsv('\uFEFF动漫,集数,播放页URL\r\n"番剧,特别篇",6,"https://example.test/play?a=1,2"\r\n');
+  assert.deepEqual(rows, [{ title: '番剧,特别篇', ep: 6, url: 'https://example.test/play?a=1,2' }]);
+});
+
 test('readCsv 读取带 BOM 的真实文件', () => {
   const dir = tmpDir();
   const file = path.join(dir, '待下载清单.csv');
