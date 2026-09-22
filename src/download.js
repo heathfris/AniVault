@@ -137,8 +137,14 @@ async function downloadEpisode(anime, ep, folderDir, deps = {}) {
     const isPrimary = src === 1; const attemptName = getLineAttemptName(filename, src); const attemptPath = path.join(folderDir, attemptName);
     try { const st = fsImpl.statSync(attemptPath); if (st.size < minSize) fsImpl.renameSync(attemptPath, attemptPath + '.failed'); } catch (e) {}
     let url = null;
-    try { url = await resolvePlayUrl(anime.site_id, ep, src, deps.browserPool); if (!url && src === 1) { progress('  线路1 取址失败，5秒后重试一次'); await sleepFn(5000); url = await resolvePlayUrl(anime.site_id, ep, src, deps.browserPool); } } catch (e) { lastErr = e; }
-    if (!url) { lastErr = new Error(`线路${src}取址失败`); progress(`  ${filename} 线路${src}: 取址失败`); continue; }
+    let resolveError = null;
+    try { url = await resolvePlayUrl(anime.site_id, ep, src, deps.browserPool); if (!url && src === 1) { progress('  线路1 取址失败，5秒后重试一次'); await sleepFn(5000); url = await resolvePlayUrl(anime.site_id, ep, src, deps.browserPool); } } catch (e) { resolveError = e; }
+    if (!url) {
+      const detail = resolveError && resolveError.message ? `: ${String(resolveError.message).split('\n')[0].slice(0, 200)}` : '';
+      lastErr = new Error(`线路${src}取址失败${detail}`);
+      progress(`  ${filename} 线路${src}: 取址失败${detail}`);
+      continue;
+    }
     const isM3u8 = /\.m3u8(?:[?#]|$)/i.test(url); const headers = { Referer: `${getBase()}/play/${anime.site_id}/${src}/${ep}`, 'User-Agent': userAgent };
     let engineOk = false; let res = null; let okEngineName = null;
     for (const engineName of engineChain(engine, isM3u8, runMode)) {
