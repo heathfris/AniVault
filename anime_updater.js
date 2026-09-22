@@ -15,8 +15,26 @@ const siteOps = require('./src/site.js');
 const downloadOps = require('./src/download.js');
 
 const WORK = __dirname;
-const EDGE = process.env.AGE_EDGE || 'msedge.exe';
-const IDM = process.env.AGE_IDM || 'IDMan.exe';
+// Edge 只注册了 App Paths，不在 PATH 上，裸文件名会让 playwright 秒失败（0.12.9 回归修复）
+const EDGE_CANDIDATES = [
+  'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+  'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+];
+const IDM_CANDIDATES = [
+  'F:\\IDM\\Internet Download Manager\\IDMan.exe',
+  'C:\\Program Files (x86)\\Internet Download Manager\\IDMan.exe',
+];
+function firstExistingPath(candidates, supplied = '') {
+  if (supplied) return supplied;
+  for (const candidate of candidates) {
+    try { if (fs.existsSync(candidate)) return candidate; } catch (e) {}
+  }
+  return candidates[0];
+}
+function getEdgePath(env = process.env) { return firstExistingPath(EDGE_CANDIDATES, env.AGE_EDGE); }
+function getIdmPath(env = process.env) { return firstExistingPath(IDM_CANDIDATES, env.AGE_IDM); }
+const EDGE = getEdgePath();
+const IDM = getIdmPath();
 function getCsvPath(workDir = WORK, env = process.env) {
   return env.AGE_CSV || path.join(workDir, 'local', '待下载清单.csv');
 }
@@ -521,7 +539,7 @@ async function main() {
   await processAllAnime(content, { dryRun });
 }
 
-module.exports = { searchSite, parseHomeUpdateTimes, parseFolderName, applyTemplate, matchFolderTemplate, validName, resolveFolderName, resolveFileName, renameFolder, safeRenameFolder, renameWithRetrySync, getMediaDurationSeconds, isDurationPlausible, chooseRecoverablePart, getEpisodeFileMatcher, countEpisodeFiles, findEpisodeFile, planDownloadRange, findMissingEps, resolveDownloadedStart, computeNewEnd, filterRowsByResults, withoutSkippedEps, getBase, resetBaseCache, getDownloadDir, engineChain, getCsvPath, getFfmpegPath, getAria2Path, getFfmpegTempPath, formatLogTime, isIdmRunning, ensureIdmMinimized, idmHasActivity, closeIdmIfIdle, blocked, progress, getMaxEp, getPlayUrl, callIdm, callFfmpeg, callAria2, fetchText, runPool, processOneAnime, processAllAnime, waitForFile, downloadEpisode, findFolder, findFolderByTitle, writeCsv, mergeUpdaterChanges };
+module.exports = { searchSite, parseHomeUpdateTimes, parseFolderName, applyTemplate, matchFolderTemplate, validName, resolveFolderName, resolveFileName, renameFolder, safeRenameFolder, renameWithRetrySync, getMediaDurationSeconds, isDurationPlausible, chooseRecoverablePart, getEpisodeFileMatcher, countEpisodeFiles, findEpisodeFile, planDownloadRange, findMissingEps, resolveDownloadedStart, computeNewEnd, filterRowsByResults, withoutSkippedEps, getBase, resetBaseCache, getDownloadDir, engineChain, getCsvPath, getFfmpegPath, getAria2Path, getFfmpegTempPath, formatLogTime, isIdmRunning, ensureIdmMinimized, idmHasActivity, closeIdmIfIdle, blocked, progress, getMaxEp, getPlayUrl, callIdm, callFfmpeg, callAria2, fetchText, runPool, processOneAnime, processAllAnime, waitForFile, downloadEpisode, findFolder, findFolderByTitle, writeCsv, mergeUpdaterChanges, getEdgePath, getIdmPath };
 
 if (require.main === module) {
   main().catch(e => {
