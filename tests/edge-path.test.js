@@ -9,12 +9,13 @@ process.env.AGE_PROGRESS = path.join(logDir, 'PROGRESS.md');
 process.env.AGE_BLOCKED = path.join(logDir, 'BLOCKED.md');
 
 const updater = require('../anime_updater.js');
+const win32 = path.win32;
 
 test('Edge 与 IDM 默认路径必须是绝对路径', () => {
   const edge = updater.getEdgePath({});
   const idm = updater.getIdmPath({});
-  assert.ok(path.isAbsolute(edge), `Edge 默认值应为绝对路径，实际 ${edge}`);
-  assert.ok(path.isAbsolute(idm), `IDM 默认值应为绝对路径，实际 ${idm}`);
+  assert.ok(win32.isAbsolute(edge), `Edge 默认值应为绝对路径，实际 ${edge}`);
+  assert.ok(win32.isAbsolute(idm), `IDM 默认值应为绝对路径，实际 ${idm}`);
   assert.match(edge, /msedge\.exe$/i);
   assert.match(idm, /IDMan\.exe$/i);
 });
