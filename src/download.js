@@ -115,6 +115,14 @@ async function downloadEpisode(anime, ep, folderDir, deps = {}) {
   const minSize = deps.minSize || 100 * 1024 * 1024;
   const stableMs = deps.stableMs || 120 * 1000;
   const attemptTimeoutMs = deps.attemptTimeoutMs || 45 * 60 * 1000;
+  const cleanupFailedAttempts = () => {
+    let removed = 0;
+    for (const src of lines) {
+      const failedPath = path.join(folderDir, `${getLineAttemptName(filename, src)}.failed`);
+      try { fsImpl.unlinkSync(failedPath); removed += 1; } catch (e) {}
+    }
+    if (removed) progress(`  ${filename}: 已清理 ${removed} 个失败下载残留`);
+  };
   const engine = deps.engine || 'aria2';
   const runMode = deps.runMode || 'interactive';
   const getBase = deps.getBase || (() => 'https://www.agedm.io');
@@ -125,12 +133,12 @@ async function downloadEpisode(anime, ep, folderDir, deps = {}) {
   const previous = ep > 1 ? findEpisodeFile(folderDir, anime, ep - 1) : null;
   const referenceDuration = previous ? durationOf(previous) : 0;
   const existing = findEpisodeFile(folderDir, anime, ep);
-  if (existing) { try { if (fsImpl.statSync(existing).size >= minSize && (!referenceDuration || plausible(durationOf(existing), referenceDuration))) return { src: 0, skipped: true }; } catch (e) {} }
+  if (existing) { try { if (fsImpl.statSync(existing).size >= minSize && (!referenceDuration || plausible(durationOf(existing), referenceDuration))) { cleanupFailedAttempts(); return { src: 0, skipped: true }; } } catch (e) {} }
   if (!existing) {
     const candidates = [];
     for (const src of lines) { const attemptName = getLineAttemptName(filename, src); const partPath = tempPath(path.join(folderDir, attemptName)); try { const stat = fsImpl.statSync(partPath); candidates.push({ path: partPath, size: stat.size, duration: durationOf(partPath) }); } catch (e) {} }
     const recovered = recover(candidates, referenceDuration, minSize);
-    if (recovered) { renameCompleted(recovered.path, finalPath); progress(`  ${filename}: 复用完整临时文件，避免重复下载`); return { src: 0, skipped: true, recovered: true, size: recovered.size }; }
+    if (recovered) { renameCompleted(recovered.path, finalPath); progress(`  ${filename}: 复用完整临时文件，避免重复下载`); cleanupFailedAttempts(); return { src: 0, skipped: true, recovered: true, size: recovered.size }; }
   }
   let lastErr = null;
   for (const src of lines) {
@@ -156,7 +164,7 @@ async function downloadEpisode(anime, ep, folderDir, deps = {}) {
       if (durationOk) { engineOk = true; okEngineName = engineName; break; }
       const detail = res.ok ? '时长明显不足' : `size=${res.size}`; lastErr = new Error(`线路${src} ${engineName} 文件未完成 ${detail}`); progress(`  ${filename} 线路${src}: ${engineName} 未完成 ${detail}`); try { fsImpl.renameSync(attemptPath, attemptPath + '.failed'); } catch (e) {}
     }
-    if (engineOk) { if (!isPrimary) renameCompleted(attemptPath, finalPath); return { src, skipped: false, size: res.size, engine: okEngineName }; }
+    if (engineOk) { if (!isPrimary) renameCompleted(attemptPath, finalPath); cleanupFailedAttempts(); return { src, skipped: false, size: res.size, engine: okEngineName }; }
   }
   throw lastErr || new Error('全部线路失败');
 }
