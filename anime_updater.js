@@ -445,11 +445,22 @@ async function processOneAnime(title, info, content, options = {}) {
   const failedCount = results.filter(x => !x || !x.ok).length;
   const idmUsed = results.some(x => x && x.ok && x.r && x.r.engine === 'idm');
   const newEnd = computeNewEnd(end, missing, results);
+  const downloadedFileCount = countEpisodeFiles(folder.dir, anime);
+  const updatedStart = resolveDownloadedStart(downloadedFileCount, info.downloaded_start);
+  const startChanged = updatedStart !== info.downloaded_start;
+  if (startChanged) {
+    info.downloaded_start = updatedStart;
+    anime.downloaded_start = updatedStart;
+    changed = true;
+    progress(`${title}: downloaded_start 修正为 ${updatedStart}`);
+  }
   if (newEnd > end) {
     info.downloaded_end = newEnd;
     changed = true;
     if (failedCount > 0) progress(`${title}: 部分成功，end ${end} -> ${newEnd}（${failedCount} 集失败留待补下）`);
     else progress(`${title}: 全部成功，end ${end} -> ${newEnd}`);
+  }
+  if (newEnd > end || startChanged) {
     const newRes = resolveFolderName(anime, folder, newEnd);
     if (newRes.error) {
       blocked(`${title}: ${newRes.error}`);
